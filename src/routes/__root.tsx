@@ -77,14 +77,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "NMU Business School Attendance Report Generator" },
+      {
+        name: "description",
+        content:
+          "Upload Zoom attendance exports and instantly generate clean, combined attendance reports with percentages, Excel and PDF exports.",
+      },
+      { name: "author", content: "NMU Business School" },
+      { property: "og:title", content: "NMU Business School Attendance Report Generator" },
+      {
+        property: "og:description",
+        content:
+          "Turn raw Zoom attendance spreadsheets into professional reports in seconds.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
