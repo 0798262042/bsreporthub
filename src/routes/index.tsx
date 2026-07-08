@@ -50,7 +50,6 @@ function Index() {
   const navigate = useNavigate();
   const { reports } = useReports();
   const [name, setName] = useState("");
-  const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -142,7 +141,7 @@ function Index() {
                     <Button variant="ghost" onClick={() => setOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={doCreate} disabled={creating}>
+                    <Button onClick={doCreate}>
                       Create
                     </Button>
                   </DialogFooter>
