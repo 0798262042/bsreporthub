@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -440,20 +440,14 @@ function ReportPage() {
                     </tr>
                     <tr className="bg-primary/90 text-primary-foreground text-xs">
                       {combined!.sessions.map((s) => (
-                        <>
-                          <th
-                            key={s.id + "j"}
-                            className="px-3 py-1.5 text-center font-medium border-l border-white/20"
-                          >
+                        <Fragment key={s.id}>
+                          <th className="px-3 py-1.5 text-center font-medium border-l border-white/20">
                             Join
                           </th>
-                          <th
-                            key={s.id + "l"}
-                            className="px-3 py-1.5 text-center font-medium"
-                          >
+                          <th className="px-3 py-1.5 text-center font-medium">
                             Leave
                           </th>
-                        </>
+                        </Fragment>
                       ))}
                     </tr>
                   </thead>
@@ -463,17 +457,21 @@ function ReportPage() {
                         key={r.name}
                         className={cn(
                           "border-t border-border transition-colors",
-                          i % 2 === 1 && "bg-accent/30",
+                          i % 2 === 1 ? "bg-accent/30" : "bg-card",
                           "hover:bg-accent/60",
                         )}
                       >
-                        <td className="sticky left-0 z-10 bg-inherit px-4 py-2.5 font-medium">
+                        <td
+                          className={cn(
+                            "sticky left-0 z-10 px-4 py-2.5 font-medium",
+                            i % 2 === 1 ? "bg-accent/80" : "bg-card",
+                          )}
+                        >
                           {r.name}
                         </td>
                         {r.perSession.map((p, idx) => (
-                          <>
+                          <Fragment key={idx}>
                             <td
-                              key={idx + "j"}
                               className={cn(
                                 "px-3 py-2 text-center tabular-nums border-l border-border/40",
                                 !p.join && "text-muted-foreground",
@@ -482,7 +480,6 @@ function ReportPage() {
                               {p.join ? formatTime(p.join) : "—"}
                             </td>
                             <td
-                              key={idx + "l"}
                               className={cn(
                                 "px-3 py-2 text-center tabular-nums",
                                 !p.leave && "text-muted-foreground",
@@ -490,7 +487,7 @@ function ReportPage() {
                             >
                               {p.leave ? formatTime(p.leave) : "—"}
                             </td>
-                          </>
+                          </Fragment>
                         ))}
                         <td className="px-3 py-2 text-center font-semibold border-l border-border/40">
                           {r.attended}
