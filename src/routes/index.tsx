@@ -38,6 +38,7 @@ import {
   createReport,
   addSessions,
   deleteReport,
+  findReportContainingSessions,
 } from "@/lib/attendance/storage";
 import { parseAttendanceFile } from "@/lib/attendance/parse";
 import { toStoredSession, relabelSessions } from "@/lib/attendance/combine";
@@ -63,9 +64,6 @@ function Index() {
   const handleQuickUpload = async (files: File[]) => {
     setBusy(true);
     try {
-      const report = createReport(
-        files[0].name.replace(/\.(xlsx?|csv)$/i, "") || "Untitled Report",
-      );
       const stored = [];
       for (const f of files) {
         const parsed = await parseAttendanceFile(f);
@@ -74,9 +72,19 @@ function Index() {
       }
       if (stored.length === 0) {
         toast.error("No attendance data found in the uploaded file(s).");
-        deleteReport(report.id);
         return;
       }
+      const dup = findReportContainingSessions(stored);
+      if (dup) {
+        toast.error(
+          `This session was already uploaded in "${dup.report.name}". Duplicates are not allowed.`,
+        );
+        navigate({ to: "/report/$id", params: { id: dup.report.id } });
+        return;
+      }
+      const report = createReport(
+        files[0].name.replace(/\.(xlsx?|csv)$/i, "") || "Untitled Report",
+      );
       const relabeled = relabelSessions(stored);
       addSessions(report.id, relabeled);
       toast.success(`Created report with ${relabeled.length} session(s).`);
@@ -108,8 +116,7 @@ function Index() {
               in seconds.
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
-              Upload one Zoom export per session. We clean duplicates, normalize names,
-              calculate attendance percentages, and export beautiful Excel & PDF reports.
+              Crafted by Tumi for NMU Business School.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
