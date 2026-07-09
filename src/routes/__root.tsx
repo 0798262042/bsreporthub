@@ -78,21 +78,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NMU Business School Attendance Report Generator" },
+      { title: "Business School Attendance Report Generator" },
       {
         name: "description",
         content:
           "Upload Zoom attendance exports and instantly generate clean, combined attendance reports with percentages, Excel and PDF exports.",
       },
       { name: "author", content: "NMU Business School" },
-      { property: "og:title", content: "NMU Business School Attendance Report Generator" },
+      { property: "og:title", content: "Business School Attendance Report Generator" },
       {
         property: "og:description",
         content:
-          "Turn raw Zoom attendance spreadsheets into professional reports in seconds.",
+          "Upload Zoom attendance exports and instantly generate clean, combined attendance reports with percentages, Excel and PDF exports.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Business School Attendance Report Generator" },
+      { name: "twitter:description", content: "Upload Zoom attendance exports and instantly generate clean, combined attendance reports with percentages, Excel and PDF exports." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/P6ss7187phbjy0KwNQBM3XSdSfT2/social-images/social-1783595726502-ChatGPT_Image_Jul_9,_2026,_01_06_54_PM.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/P6ss7187phbjy0KwNQBM3XSdSfT2/social-images/social-1783595726502-ChatGPT_Image_Jul_9,_2026,_01_06_54_PM.webp" },
     ],
     links: [
       {
