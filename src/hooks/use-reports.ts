@@ -6,7 +6,7 @@ export function useReports() {
   const [reports, setReports] = useState<Report[]>([]);
 
   const refresh = useCallback(() => {
-    setReports(listReports());
+    listReports().then(setReports).catch(() => setReports([]));
   }, []);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export function useReport(id: string | undefined) {
 
   const refresh = useCallback(() => {
     if (!id) return setReport(null);
-    setReport(getReport(id));
+    getReport(id).then(setReport).catch(() => setReport(null));
   }, [id]);
 
   useEffect(() => {
