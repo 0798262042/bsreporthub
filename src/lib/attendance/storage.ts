@@ -69,9 +69,12 @@ async function relabelReport(reportId: string) {
 }
 
 async function touchReport(id: string) {
-  await supabase.from("reports").update({ name: undefined as never }).eq("id", id);
-  // updated_at is auto-set by trigger on any UPDATE; use a no-op update:
-  await supabase.from("reports").update({ updated_at: new Date().toISOString() as never }).eq("id", id);
+  // The trigger auto-sets updated_at on any UPDATE. Bump it explicitly so the
+  // list reorders after adding/removing sessions.
+  await supabase
+    .from("reports")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", id);
 }
 
 export async function listReports(): Promise<Report[]> {
