@@ -14,7 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      reports: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          attendees: Json
+          created_at: string
+          end_time: string
+          fingerprint: string
+          host_email: string | null
+          host_name: string | null
+          id: string
+          label: string
+          report_id: string
+          session_date: string
+          source_filename: string
+          start_time: string
+          topic: string
+        }
+        Insert: {
+          attendees?: Json
+          created_at?: string
+          end_time: string
+          fingerprint: string
+          host_email?: string | null
+          host_name?: string | null
+          id?: string
+          label: string
+          report_id: string
+          session_date: string
+          source_filename?: string
+          start_time: string
+          topic?: string
+        }
+        Update: {
+          attendees?: Json
+          created_at?: string
+          end_time?: string
+          fingerprint?: string
+          host_email?: string | null
+          host_name?: string | null
+          id?: string
+          label?: string
+          report_id?: string
+          session_date?: string
+          source_filename?: string
+          start_time?: string
+          topic?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
