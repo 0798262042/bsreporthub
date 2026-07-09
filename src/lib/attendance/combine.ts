@@ -17,7 +17,9 @@ export function combineReport(sessions: StoredSession[]): {
   students: StudentRow[];
   sessions: StoredSession[];
 } {
-  const ordered = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
+  const ordered = [...sessions]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((s, i) => ({ ...s, label: `Session ${i + 1}` }));
   const map = new Map<string, StudentRow>();
 
   for (const s of ordered) {
@@ -85,7 +87,14 @@ export function relabelSessions(sessions: StoredSession[]): StoredSession[] {
   return sessions
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map((s, i) => ({ ...s, label: s.label || `Session ${i + 1}` }));
+    .map((s, i) => ({ ...s, label: `Session ${i + 1}` }));
+}
+
+// Fingerprint identifies a session by its meaningful content so the same
+// Zoom export cannot be added to a report twice.
+export function sessionFingerprint(s: StoredSession): string {
+  const topic = (s.topic || "").trim().toLowerCase().replace(/\s+/g, " ");
+  return `${s.date}|${topic}|${s.attendees.length}`;
 }
 
 export function reportDateRange(sessions: StoredSession[]): string {

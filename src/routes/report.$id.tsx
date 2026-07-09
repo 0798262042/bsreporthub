@@ -11,9 +11,16 @@ import {
   Check,
   X,
   Calendar,
+  CalendarRange,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,13 +39,12 @@ import {
   addSessions,
   removeSession,
   renameReport,
-  renameSession,
+  findDuplicateSessions,
 } from "@/lib/attendance/storage";
 import { parseAttendanceFile } from "@/lib/attendance/parse";
 import {
   combineReport,
   computeStats,
-  relabelSessions,
   reportDateRange,
   toStoredSession,
 } from "@/lib/attendance/combine";
@@ -46,6 +52,7 @@ import { formatDate, formatTime } from "@/lib/attendance/normalize";
 import { exportReportExcel } from "@/lib/attendance/export-excel";
 import { exportReportPdf } from "@/lib/attendance/export-pdf";
 import { cn } from "@/lib/utils";
+import type { DateRange } from "react-day-picker";
 
 export const Route = createFileRoute("/report/$id")({
   head: () => ({
@@ -71,13 +78,40 @@ function ReportPage() {
   const [minPct, setMinPct] = useState(0);
   const [renamingReport, setRenamingReport] = useState(false);
   const [reportNameDraft, setReportNameDraft] = useState("");
-  const [renamingSession, setRenamingSession] = useState<string | null>(null);
-  const [sessionDraft, setSessionDraft] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  const combined = useMemo(() => {
+  const fullCombined = useMemo(() => {
     if (!report) return null;
     return combineReport(report.sessions);
   }, [report]);
+
+  // Apply date-range filter on top of the combined report.
+  const combined = useMemo(() => {
+    if (!fullCombined) return null;
+    if (!dateRange?.from && !dateRange?.to) return fullCombined;
+    const from = dateRange.from ? dateRange.from.toISOString().slice(0, 10) : null;
+    const to = dateRange.to ? dateRange.to.toISOString().slice(0, 10) : from;
+    const kept = fullCombined.sessions.filter((s) => {
+      if (from && s.date < from) return false;
+      if (to && s.date > to) return false;
+      return true;
+    });
+    const keptIds = new Set(kept.map((s) => s.id));
+    const total = kept.length || 1;
+    const students = fullCombined.students
+      .map((r) => {
+        const perSession = r.perSession.filter((p) => keptIds.has(p.sessionId));
+        const attended = perSession.filter((p) => p.join !== null).length;
+        return {
+          ...r,
+          perSession,
+          attended,
+          attendancePct: Math.round((attended / total) * 1000) / 10,
+        };
+      })
+      .filter((r) => r.perSession.length > 0);
+    return { sessions: kept, students };
+  }, [fullCombined, dateRange]);
 
   const stats = useMemo(() => {
     if (!combined) return null;
@@ -123,11 +157,17 @@ function ReportPage() {
         toast.error("No attendance data found in the uploaded file(s).");
         return;
       }
-      addSessions(id, stored);
-      // Re-label after add
-      const fresh = combineReport([...report.sessions, ...stored]);
-      renameSessionsIfNeeded(id, relabelSessions(fresh.sessions));
-      toast.success(`Added ${stored.length} session(s).`);
+      const dupes = findDuplicateSessions(id, stored);
+      const dupSet = new Set(dupes.map((d) => `${d.date}|${d.topic}`));
+      const fresh = stored.filter((s) => !dupSet.has(`${s.date}|${s.topic}`));
+      if (dupes.length) {
+        toast.error(
+          `Skipped ${dupes.length} duplicate session(s) already in this report.`,
+        );
+      }
+      if (fresh.length === 0) return;
+      addSessions(id, fresh);
+      toast.success(`Added ${fresh.length} session(s).`);
     } catch (e) {
       console.error(e);
       toast.error("Could not parse one of the files.");
@@ -141,7 +181,7 @@ function ReportPage() {
     toast.success("Session removed");
   };
 
-  const dateRange = reportDateRange(report.sessions);
+  const dateRangeLabel = reportDateRange(report.sessions);
 
   return (
     <div className="min-h-screen bg-[image:var(--gradient-soft)]">
@@ -210,7 +250,7 @@ function ReportPage() {
             )}
             <p className="mt-1 text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
               <span className="inline-flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5" /> {dateRange}
+                <Calendar className="h-3.5 w-3.5" /> {dateRangeLabel}
               </span>
               <span>Generated {new Date().toLocaleDateString()}</span>
             </p>
@@ -253,9 +293,43 @@ function ReportPage() {
 
         {/* Sessions */}
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-            Sessions
-          </h2>
+          <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Sessions
+            </h2>
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9">
+                    <CalendarRange className="h-4 w-4 mr-1.5" />
+                    {dateRange?.from
+                      ? dateRange.to
+                        ? `${formatDate(dateRange.from.toISOString())} — ${formatDate(dateRange.to.toISOString())}`
+                        : formatDate(dateRange.from.toISOString())
+                      : "Filter by date range"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <CalendarPicker
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+              {dateRange?.from && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9"
+                  onClick={() => setDateRange(undefined)}
+                >
+                  <X className="h-4 w-4 mr-1" /> Clear
+                </Button>
+              )}
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {combined!.sessions.map((s, i) => (
               <div
@@ -263,55 +337,15 @@ function ReportPage() {
                 className="group rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
               >
                 <div className="flex items-start justify-between gap-2">
-                  {renamingSession === s.id ? (
-                    <div className="flex items-center gap-1 flex-1">
-                      <Input
-                        autoFocus
-                        value={sessionDraft}
-                        onChange={(e) => setSessionDraft(e.target.value)}
-                        className="h-8"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            renameSession(id, s.id, sessionDraft);
-                            setRenamingSession(null);
-                          }
-                          if (e.key === "Escape") setRenamingSession(null);
-                        }}
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          renameSession(id, s.id, sessionDraft);
-                          setRenamingSession(null);
-                        }}
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground truncate">
-                        {s.label || `Session ${i + 1}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {formatDate(s.date)}
-                      </p>
-                    </div>
-                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground truncate">
+                      Session {i + 1}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {formatDate(s.date)}
+                    </p>
+                  </div>
                   <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={() => {
-                        setSessionDraft(s.label || `Session ${i + 1}`);
-                        setRenamingSession(s.id);
-                      }}
-                    >
-                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -555,11 +589,3 @@ function StatCard({
   );
 }
 
-function renameSessionsIfNeeded(
-  reportId: string,
-  relabeled: { id: string; label: string }[],
-) {
-  for (const s of relabeled) {
-    renameSession(reportId, s.id, s.label);
-  }
-}

@@ -1,4 +1,5 @@
 import type { Report, StoredSession } from "./types";
+import { sessionFingerprint } from "./combine";
 
 const KEY = "nmu-attendance-reports-v1";
 
@@ -65,6 +66,31 @@ export function addSessions(id: string, newSessions: StoredSession[]): Report | 
     ...r,
     sessions: [...r.sessions, ...newSessions],
   }));
+}
+
+// Returns the list of sessions that already exist in the report, matched by
+// content fingerprint. Callers use this to warn and skip duplicate uploads.
+export function findDuplicateSessions(
+  reportId: string,
+  candidates: StoredSession[],
+): StoredSession[] {
+  const r = getReport(reportId);
+  if (!r) return [];
+  const existing = new Set(r.sessions.map(sessionFingerprint));
+  return candidates.filter((s) => existing.has(sessionFingerprint(s)));
+}
+
+// Returns true if any existing report already contains a session with the
+// same fingerprint as one of the candidates.
+export function findReportContainingSessions(
+  candidates: StoredSession[],
+): { report: Report; matched: StoredSession[] } | null {
+  const fps = new Set(candidates.map(sessionFingerprint));
+  for (const r of safeParse()) {
+    const matched = r.sessions.filter((s) => fps.has(sessionFingerprint(s)));
+    if (matched.length) return { report: r, matched };
+  }
+  return null;
 }
 
 export function removeSession(id: string, sessionId: string): Report | null {
