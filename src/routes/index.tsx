@@ -110,7 +110,7 @@ function Index() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              For Faculty & Administration
+              MBA, PDBA & MMM Reports
             </div>
             <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
               Turn Zoom attendance chaos into a{" "}
