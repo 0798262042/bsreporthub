@@ -1,118 +1,207 @@
 import type { Report, StoredSession } from "./types";
 import { sessionFingerprint } from "./combine";
+import { supabase } from "@/integrations/supabase/client";
 
-const KEY = "nmu-attendance-reports-v1";
-
-function safeParse(): Report[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Report[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+function emit() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("nmu-reports-changed"));
   }
 }
 
-function save(reports: Report[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, JSON.stringify(reports));
-  window.dispatchEvent(new CustomEvent("nmu-reports-changed"));
+type DbSession = {
+  id: string;
+  report_id: string;
+  label: string;
+  topic: string;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  host_name: string | null;
+  host_email: string | null;
+  source_filename: string;
+  attendees: unknown;
+  fingerprint: string;
+};
+
+function dbToStored(s: DbSession): StoredSession {
+  return {
+    id: s.id,
+    label: s.label,
+    topic: s.topic,
+    date: s.session_date,
+    startTime: s.start_time,
+    endTime: s.end_time,
+    hostName: s.host_name ?? undefined,
+    hostEmail: s.host_email ?? undefined,
+    sourceFilename: s.source_filename,
+    attendees: (s.attendees as StoredSession["attendees"]) ?? [],
+  };
 }
 
-export function listReports(): Report[] {
-  return safeParse().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+function storedToDb(reportId: string, s: StoredSession) {
+  return {
+    report_id: reportId,
+    label: s.label,
+    topic: s.topic,
+    session_date: s.date,
+    start_time: s.startTime,
+    end_time: s.endTime,
+    host_name: s.hostName ?? null,
+    host_email: s.hostEmail ?? null,
+    source_filename: s.sourceFilename,
+    attendees: s.attendees,
+    fingerprint: sessionFingerprint(s),
+  };
 }
 
-export function getReport(id: string): Report | null {
-  return safeParse().find((r) => r.id === id) ?? null;
+async function relabelReport(reportId: string) {
+  const { data } = await supabase
+    .from("sessions")
+    .select("id, session_date")
+    .eq("report_id", reportId)
+    .order("session_date", { ascending: true });
+  if (!data) return;
+  await Promise.all(
+    data.map((s, i) =>
+      supabase.from("sessions").update({ label: `Session ${i + 1}` }).eq("id", s.id),
+    ),
+  );
 }
 
-export function createReport(name: string): Report {
-  const now = new Date().toISOString();
-  const report: Report = {
-    id: `r-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-    name: name.trim() || "Untitled Report",
-    createdAt: now,
-    updatedAt: now,
+async function touchReport(id: string) {
+  // The trigger auto-sets updated_at on any UPDATE. Bump it explicitly so the
+  // list reorders after adding/removing sessions.
+  await supabase
+    .from("reports")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+export async function listReports(): Promise<Report[]> {
+  const { data: reports } = await supabase
+    .from("reports")
+    .select("*")
+    .order("updated_at", { ascending: false });
+  if (!reports) return [];
+  const ids = reports.map((r) => r.id);
+  const sessionsRes =
+    ids.length > 0
+      ? await supabase.from("sessions").select("*").in("report_id", ids)
+      : { data: [] as DbSession[] };
+  const byReport = new Map<string, StoredSession[]>();
+  for (const s of (sessionsRes.data ?? []) as DbSession[]) {
+    const list = byReport.get(s.report_id) ?? [];
+    list.push(dbToStored(s));
+    byReport.set(s.report_id, list);
+  }
+  return reports.map((r) => ({
+    id: r.id,
+    name: r.name,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    sessions: byReport.get(r.id) ?? [],
+  }));
+}
+
+export async function getReport(id: string): Promise<Report | null> {
+  const { data: r } = await supabase
+    .from("reports")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (!r) return null;
+  const { data: sessions } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("report_id", id);
+  return {
+    id: r.id,
+    name: r.name,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    sessions: ((sessions ?? []) as DbSession[]).map(dbToStored),
+  };
+}
+
+export async function createReport(name: string): Promise<Report | null> {
+  const { data } = await supabase
+    .from("reports")
+    .insert({ name: name.trim() || "Untitled Report" })
+    .select()
+    .single();
+  if (!data) return null;
+  emit();
+  return {
+    id: data.id,
+    name: data.name,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
     sessions: [],
   };
-  const all = safeParse();
-  all.push(report);
-  save(all);
-  return report;
 }
 
-export function updateReport(
-  id: string,
-  updater: (r: Report) => Report,
-): Report | null {
-  const all = safeParse();
-  const idx = all.findIndex((r) => r.id === id);
-  if (idx < 0) return null;
-  const updated = { ...updater(all[idx]), updatedAt: new Date().toISOString() };
-  all[idx] = updated;
-  save(all);
-  return updated;
+export async function deleteReport(id: string) {
+  await supabase.from("reports").delete().eq("id", id);
+  emit();
 }
 
-export function deleteReport(id: string) {
-  save(safeParse().filter((r) => r.id !== id));
+export async function renameReport(id: string, name: string) {
+  await supabase
+    .from("reports")
+    .update({ name: name.trim() || "Untitled Report" })
+    .eq("id", id);
+  emit();
 }
 
-export function addSessions(id: string, newSessions: StoredSession[]): Report | null {
-  return updateReport(id, (r) => ({
-    ...r,
-    sessions: [...r.sessions, ...newSessions],
-  }));
+export async function addSessions(id: string, newSessions: StoredSession[]) {
+  if (newSessions.length === 0) return;
+  const rows = newSessions.map((s) => storedToDb(id, s));
+  await supabase.from("sessions").insert(rows);
+  await relabelReport(id);
+  await touchReport(id);
+  emit();
 }
 
-// Returns the list of sessions that already exist in the report, matched by
-// content fingerprint. Callers use this to warn and skip duplicate uploads.
-export function findDuplicateSessions(
+export async function removeSession(id: string, sessionId: string) {
+  await supabase.from("sessions").delete().eq("id", sessionId);
+  await relabelReport(id);
+  await touchReport(id);
+  emit();
+}
+
+export async function findDuplicateSessions(
   reportId: string,
   candidates: StoredSession[],
-): StoredSession[] {
-  const r = getReport(reportId);
-  if (!r) return [];
-  const existing = new Set(r.sessions.map(sessionFingerprint));
-  return candidates.filter((s) => existing.has(sessionFingerprint(s)));
+): Promise<StoredSession[]> {
+  const fps = candidates.map(sessionFingerprint);
+  if (fps.length === 0) return [];
+  const { data } = await supabase
+    .from("sessions")
+    .select("fingerprint")
+    .eq("report_id", reportId)
+    .in("fingerprint", fps);
+  const existing = new Set((data ?? []).map((d) => d.fingerprint));
+  return candidates.filter((c) => existing.has(sessionFingerprint(c)));
 }
 
-// Returns true if any existing report already contains a session with the
-// same fingerprint as one of the candidates.
-export function findReportContainingSessions(
+export async function findReportContainingSessions(
   candidates: StoredSession[],
-): { report: Report; matched: StoredSession[] } | null {
-  const fps = new Set(candidates.map(sessionFingerprint));
-  for (const r of safeParse()) {
-    const matched = r.sessions.filter((s) => fps.has(sessionFingerprint(s)));
-    if (matched.length) return { report: r, matched };
-  }
-  return null;
-}
-
-export function removeSession(id: string, sessionId: string): Report | null {
-  return updateReport(id, (r) => ({
-    ...r,
-    sessions: r.sessions.filter((s) => s.id !== sessionId),
-  }));
-}
-
-export function renameSession(
-  id: string,
-  sessionId: string,
-  label: string,
-): Report | null {
-  return updateReport(id, (r) => ({
-    ...r,
-    sessions: r.sessions.map((s) =>
-      s.id === sessionId ? { ...s, label } : s,
-    ),
-  }));
-}
-
-export function renameReport(id: string, name: string): Report | null {
-  return updateReport(id, (r) => ({ ...r, name: name.trim() || r.name }));
+): Promise<{ report: Report; matched: StoredSession[] } | null> {
+  const fps = candidates.map(sessionFingerprint);
+  if (fps.length === 0) return null;
+  const { data } = await supabase
+    .from("sessions")
+    .select("report_id, fingerprint")
+    .in("fingerprint", fps);
+  if (!data || data.length === 0) return null;
+  const reportId = data[0].report_id;
+  const report = await getReport(reportId);
+  if (!report) return null;
+  const matchedFps = new Set(
+    data.filter((d) => d.report_id === reportId).map((d) => d.fingerprint),
+  );
+  return {
+    report,
+    matched: candidates.filter((c) => matchedFps.has(sessionFingerprint(c))),
+  };
 }

@@ -54,11 +54,11 @@ function Index() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const doCreate = () => {
-    const r = createReport(name || "Untitled Report");
+  const doCreate = async () => {
+    const r = await createReport(name || "Untitled Report");
     setName("");
     setOpen(false);
-    navigate({ to: "/report/$id", params: { id: r.id } });
+    if (r) navigate({ to: "/report/$id", params: { id: r.id } });
   };
 
   const handleQuickUpload = async (files: File[]) => {
@@ -74,7 +74,7 @@ function Index() {
         toast.error("No attendance data found in the uploaded file(s).");
         return;
       }
-      const dup = findReportContainingSessions(stored);
+      const dup = await findReportContainingSessions(stored);
       if (dup) {
         toast.error(
           `This session was already uploaded in "${dup.report.name}". Duplicates are not allowed.`,
@@ -82,11 +82,15 @@ function Index() {
         navigate({ to: "/report/$id", params: { id: dup.report.id } });
         return;
       }
-      const report = createReport(
+      const report = await createReport(
         files[0].name.replace(/\.(xlsx?|csv)$/i, "") || "Untitled Report",
       );
+      if (!report) {
+        toast.error("Could not create report.");
+        return;
+      }
       const relabeled = relabelSessions(stored);
-      addSessions(report.id, relabeled);
+      await addSessions(report.id, relabeled);
       toast.success(`Created report with ${relabeled.length} session(s).`);
       navigate({ to: "/report/$id", params: { id: report.id } });
     } catch (e) {
@@ -106,7 +110,7 @@ function Index() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              For Faculty & Administration
+              MBA, PDBA & MMM Reports
             </div>
             <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
               Turn Zoom attendance chaos into a{" "}
