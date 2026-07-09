@@ -157,7 +157,7 @@ function ReportPage() {
         toast.error("No attendance data found in the uploaded file(s).");
         return;
       }
-      const dupes = findDuplicateSessions(id, stored);
+      const dupes = await findDuplicateSessions(id, stored);
       const dupSet = new Set(dupes.map((d) => `${d.date}|${d.topic}`));
       const fresh = stored.filter((s) => !dupSet.has(`${s.date}|${s.topic}`));
       if (dupes.length) {
@@ -166,7 +166,7 @@ function ReportPage() {
         );
       }
       if (fresh.length === 0) return;
-      addSessions(id, fresh);
+      await addSessions(id, fresh);
       toast.success(`Added ${fresh.length} session(s).`);
     } catch (e) {
       console.error(e);
