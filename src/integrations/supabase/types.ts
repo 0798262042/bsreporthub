@@ -16,19 +16,25 @@ export type Database = {
     Tables: {
       reports: {
         Row: {
+          category: string
           created_at: string
+          hidden_names: Json
           id: string
           name: string
           updated_at: string
         }
         Insert: {
+          category?: string
           created_at?: string
+          hidden_names?: Json
           id?: string
           name: string
           updated_at?: string
         }
         Update: {
+          category?: string
           created_at?: string
+          hidden_names?: Json
           id?: string
           name?: string
           updated_at?: string
