@@ -534,7 +534,7 @@ function ReportPage() {
                       <tr
                         key={r.name}
                         className={cn(
-                          "border-t border-border transition-colors",
+                          "group border-t border-border transition-colors",
                           i % 2 === 1 ? "bg-accent/30" : "bg-card",
                           "hover:bg-accent/60",
                         )}
@@ -545,7 +545,32 @@ function ReportPage() {
                             i % 2 === 1 ? "bg-accent/80" : "bg-card",
                           )}
                         >
-                          {r.name}
+                          <div className="flex items-center justify-between gap-2">
+                            <span
+                              className={cn(
+                                hiddenSet.has(r.name.toLowerCase()) &&
+                                  "text-muted-foreground italic",
+                              )}
+                            >
+                              {r.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => toggleHide(r.name)}
+                              title={
+                                hiddenSet.has(r.name.toLowerCase())
+                                  ? "Restore row"
+                                  : "Hide this row (e.g. lecturer)"
+                              }
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                            >
+                              {hiddenSet.has(r.name.toLowerCase()) ? (
+                                <Eye className="h-3.5 w-3.5" />
+                              ) : (
+                                <EyeOff className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
                         </td>
                         {r.perSession.map((p, idx) => (
                           <Fragment key={idx}>
