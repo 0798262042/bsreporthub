@@ -12,6 +12,8 @@ import {
   X,
   Calendar,
   CalendarRange,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +42,7 @@ import {
   removeSession,
   renameReport,
   findDuplicateSessions,
+  setHiddenNames,
 } from "@/lib/attendance/storage";
 import { parseAttendanceFile } from "@/lib/attendance/parse";
 import {
@@ -79,6 +82,12 @@ function ReportPage() {
   const [renamingReport, setRenamingReport] = useState(false);
   const [reportNameDraft, setReportNameDraft] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [showHidden, setShowHidden] = useState(false);
+
+  const hiddenSet = useMemo(
+    () => new Set((report?.hiddenNames ?? []).map((n) => n.toLowerCase())),
+    [report],
+  );
 
   const fullCombined = useMemo(() => {
     if (!report) return null;
@@ -88,7 +97,12 @@ function ReportPage() {
   // Apply date-range filter on top of the combined report.
   const combined = useMemo(() => {
     if (!fullCombined) return null;
-    if (!dateRange?.from && !dateRange?.to) return fullCombined;
+    const applyHidden = (students: typeof fullCombined.students) =>
+      showHidden
+        ? students
+        : students.filter((s) => !hiddenSet.has(s.name.toLowerCase()));
+    if (!dateRange?.from && !dateRange?.to)
+      return { ...fullCombined, students: applyHidden(fullCombined.students) };
     const from = dateRange.from ? dateRange.from.toISOString().slice(0, 10) : null;
     const to = dateRange.to ? dateRange.to.toISOString().slice(0, 10) : from;
     const kept = fullCombined.sessions.filter((s) => {
@@ -110,8 +124,8 @@ function ReportPage() {
         };
       })
       .filter((r) => r.perSession.length > 0);
-    return { sessions: kept, students };
-  }, [fullCombined, dateRange]);
+    return { sessions: kept, students: applyHidden(students) };
+  }, [fullCombined, dateRange, hiddenSet, showHidden]);
 
   const stats = useMemo(() => {
     if (!combined) return null;
@@ -179,6 +193,17 @@ function ReportPage() {
   const handleDeleteSession = (sessionId: string) => {
     removeSession(id, sessionId);
     toast.success("Session removed");
+  };
+
+  const toggleHide = (name: string) => {
+    if (!report) return;
+    const current = report.hiddenNames ?? [];
+    const isHidden = current.some((n) => n.toLowerCase() === name.toLowerCase());
+    const next = isHidden
+      ? current.filter((n) => n.toLowerCase() !== name.toLowerCase())
+      : [...current, name];
+    setHiddenNames(id, next);
+    toast.success(isHidden ? `Restored ${name}` : `Hidden ${name}`);
   };
 
   const dateRangeLabel = reportDateRange(report.sessions);
