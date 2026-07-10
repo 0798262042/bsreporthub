@@ -447,6 +447,25 @@ function ReportPage() {
             <div className="ml-auto text-sm text-muted-foreground">
               Showing {filteredStudents.length} of {combined!.students.length} students
             </div>
+            {(report.hiddenNames?.length ?? 0) > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowHidden((v) => !v)}
+              >
+                {showHidden ? (
+                  <>
+                    <EyeOff className="h-4 w-4 mr-1.5" /> Hide{" "}
+                    {report.hiddenNames.length} hidden
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 mr-1.5" /> Show{" "}
+                    {report.hiddenNames.length} hidden
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </section>
 
