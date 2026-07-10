@@ -1,47 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { toast } from "sonner";
-import {
-  FileSpreadsheet,
-  Plus,
-  Trash2,
-  Users,
-  Calendar,
-  ArrowRight,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Sparkles, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { BrandHeader } from "@/components/attendance/BrandHeader";
-import { UploadDropzone } from "@/components/attendance/UploadDropzone";
 import { useReports } from "@/hooks/use-reports";
-import {
-  createReport,
-  addSessions,
-  deleteReport,
-  findReportContainingSessions,
-} from "@/lib/attendance/storage";
-import { parseAttendanceFile } from "@/lib/attendance/parse";
-import { toStoredSession, relabelSessions } from "@/lib/attendance/combine";
+import { CATEGORIES, type Category } from "@/lib/attendance/types";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -50,55 +12,14 @@ export const Route = createFileRoute("/")({
 function Index() {
   const navigate = useNavigate();
   const { reports } = useReports();
-  const [name, setName] = useState("");
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
 
-  const doCreate = async () => {
-    const r = await createReport(name || "Untitled Report");
-    setName("");
-    setOpen(false);
-    if (r) navigate({ to: "/report/$id", params: { id: r.id } });
-  };
+  const counts: Record<Category, number> = { MBA: 0, PDBA: 0, MMM: 0 };
+  for (const r of reports) counts[r.category] = (counts[r.category] ?? 0) + 1;
 
-  const handleQuickUpload = async (files: File[]) => {
-    setBusy(true);
-    try {
-      const stored = [];
-      for (const f of files) {
-        const parsed = await parseAttendanceFile(f);
-        parsed.warnings.forEach((w) => toast.warning(w));
-        for (const s of parsed.sessions) stored.push(toStoredSession(s));
-      }
-      if (stored.length === 0) {
-        toast.error("No attendance data found in the uploaded file(s).");
-        return;
-      }
-      const dup = await findReportContainingSessions(stored);
-      if (dup) {
-        toast.error(
-          `This session was already uploaded in "${dup.report.name}". Duplicates are not allowed.`,
-        );
-        navigate({ to: "/report/$id", params: { id: dup.report.id } });
-        return;
-      }
-      const report = await createReport(
-        files[0].name.replace(/\.(xlsx?|csv)$/i, "") || "Untitled Report",
-      );
-      if (!report) {
-        toast.error("Could not create report.");
-        return;
-      }
-      const relabeled = relabelSessions(stored);
-      await addSessions(report.id, relabeled);
-      toast.success(`Created report with ${relabeled.length} session(s).`);
-      navigate({ to: "/report/$id", params: { id: report.id } });
-    } catch (e) {
-      console.error(e);
-      toast.error("Could not parse that file. Is it a Zoom attendance export?");
-    } finally {
-      setBusy(false);
-    }
+  const meta: Record<Category, { blurb: string }> = {
+    MBA: { blurb: "Master of Business Administration attendance reports." },
+    PDBA: { blurb: "Postgraduate Diploma in Business Admin attendance reports." },
+    MMM: { blurb: "Master of Management (MMM) attendance reports." },
   };
 
   return (
@@ -106,7 +27,7 @@ function Index() {
       <BrandHeader />
 
       <main className="mx-auto max-w-7xl px-6 py-12">
-        <section className="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+        <section className="max-w-3xl">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-primary">
               <Sparkles className="h-3.5 w-3.5" />
@@ -122,68 +43,6 @@ function Index() {
             <p className="mt-4 text-lg text-muted-foreground">
               Crafted by Tumi for NMU Business School.
             </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    size="lg"
-                    className="bg-[image:var(--gradient-brand)] text-white shadow-[var(--shadow-card)] hover:opacity-95"
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    New Report
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create a new attendance report</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Report name</label>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. PDBA MBA Management Accounting — Q1"
-                      onKeyDown={(e) => e.key === "Enter" && doCreate()}
-                      autoFocus
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button variant="ghost" onClick={() => setOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={doCreate}>
-                      Create
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => {
-                  const el = document.getElementById("quick-upload");
-                  el?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                <FileSpreadsheet className="mr-1 h-4 w-4" />
-                Quick upload
-              </Button>
-            </div>
-
-            <div className="mt-10 grid grid-cols-3 gap-4 max-w-md">
-              <Stat kpi="Auto" label="Session detection" />
-              <Stat kpi="0" label="Setup required" />
-              <Stat kpi="Excel + PDF" label="Exports" />
-            </div>
-          </div>
-
-          <div id="quick-upload">
-            <UploadDropzone onFiles={handleQuickUpload} busy={busy} />
-            <p className="mt-3 text-xs text-muted-foreground text-center">
-              Files are processed in your browser — no data leaves your device.
-            </p>
           </div>
         </section>
 
@@ -193,106 +52,42 @@ function Index() {
               Recent reports
             </h2>
             <p className="text-sm text-muted-foreground">
-              {reports.length} saved locally
+              Grouped by programme
             </p>
           </div>
 
-          {reports.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-12 text-center">
-              <p className="text-muted-foreground">
-                No reports yet. Create one or drop a file above to get started.
-              </p>
-            </div>
-          ) : (
-            <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {reports.map((r) => (
-                <li
-                  key={r.id}
-                  className="group rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-shadow"
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {CATEGORIES.map((c) => (
+              <li key={c}>
+                <button
+                  onClick={() =>
+                    navigate({ to: "/category/$category", params: { category: c } })
+                  }
+                  className="w-full text-left rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-all hover:-translate-y-0.5"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <button
-                      onClick={() =>
-                        navigate({ to: "/report/$id", params: { id: r.id } })
-                      }
-                      className="text-left flex-1"
-                    >
-                      <p className="font-semibold text-foreground line-clamp-2">
-                        {r.name}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Updated {new Date(r.updatedAt).toLocaleString()}
-                      </p>
-                    </button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete report?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            "{r.name}" and its uploaded sessions will be permanently
-                            removed from this browser.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground"
-                            onClick={() => {
-                              deleteReport(r.id);
-                              toast.success("Report deleted");
-                            }}
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                  <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {r.sessions.length} session{r.sessions.length === 1 ? "" : "s"}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" />
-                      {new Set(
-                        r.sessions.flatMap((s) => s.attendees.map((a) => a.name)),
-                      ).size}{" "}
-                      students
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[image:var(--gradient-brand)] text-white">
+                      <GraduationCap className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {counts[c]} report{counts[c] === 1 ? "" : "s"}
                     </span>
                   </div>
-                  <button
-                    onClick={() =>
-                      navigate({ to: "/report/$id", params: { id: r.id } })
-                    }
-                    className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:gap-2 transition-all"
-                  >
-                    Open <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                  <p className="mt-4 text-2xl font-bold tracking-tight text-foreground">
+                    {c}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {meta[c].blurb}
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                    Open {c} reports <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </section>
       </main>
-    </div>
-  );
-}
-
-function Stat({ kpi, label }: { kpi: string; label: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-3">
-      <p className="text-sm font-bold text-primary">{kpi}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }
