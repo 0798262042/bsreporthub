@@ -1,4 +1,4 @@
-import type { Report, StoredSession } from "./types";
+import type { Category, Report, StoredSession } from "./types";
 import { sessionFingerprint } from "./combine";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -97,6 +97,8 @@ export async function listReports(): Promise<Report[]> {
   return reports.map((r) => ({
     id: r.id,
     name: r.name,
+    category: (r.category as Category) ?? "MBA",
+    hiddenNames: Array.isArray(r.hidden_names) ? (r.hidden_names as string[]) : [],
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     sessions: byReport.get(r.id) ?? [],
@@ -117,16 +119,21 @@ export async function getReport(id: string): Promise<Report | null> {
   return {
     id: r.id,
     name: r.name,
+    category: (r.category as Category) ?? "MBA",
+    hiddenNames: Array.isArray(r.hidden_names) ? (r.hidden_names as string[]) : [],
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     sessions: ((sessions ?? []) as DbSession[]).map(dbToStored),
   };
 }
 
-export async function createReport(name: string): Promise<Report | null> {
+export async function createReport(
+  name: string,
+  category: Category = "MBA",
+): Promise<Report | null> {
   const { data } = await supabase
     .from("reports")
-    .insert({ name: name.trim() || "Untitled Report" })
+    .insert({ name: name.trim() || "Untitled Report", category })
     .select()
     .single();
   if (!data) return null;
@@ -134,10 +141,20 @@ export async function createReport(name: string): Promise<Report | null> {
   return {
     id: data.id,
     name: data.name,
+    category: (data.category as Category) ?? category,
+    hiddenNames: [],
     createdAt: data.created_at,
     updatedAt: data.updated_at,
     sessions: [],
   };
+}
+
+export async function setHiddenNames(id: string, names: string[]) {
+  await supabase
+    .from("reports")
+    .update({ hidden_names: names, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  emit();
 }
 
 export async function deleteReport(id: string) {

@@ -30,10 +30,15 @@ export type StoredSession = Omit<SessionData, "attendees"> & {
 export type Report = {
   id: string;
   name: string;
+  category: Category;
+  hiddenNames: string[];
   createdAt: string;
   updatedAt: string;
   sessions: StoredSession[];
 };
+
+export type Category = "MBA" | "PDBA" | "MMM";
+export const CATEGORIES: Category[] = ["MBA", "PDBA", "MMM"];
 
 export type StudentRow = {
   name: string;

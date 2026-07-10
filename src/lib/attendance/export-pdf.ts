@@ -89,7 +89,7 @@ export async function exportReportPdf(
   });
 
   const widths = [
-    "*",
+    120,
     ...sessions.flatMap(() => ["auto", "auto"]),
     "auto",
     "auto",
@@ -102,19 +102,39 @@ export async function exportReportPdf(
   const dd = {
     pageOrientation: "landscape",
     pageSize: "A4",
-    pageMargins: [24, 60, 24, 40],
+    pageMargins: [24, 96, 24, 40],
     header: () => ({
-      columns: [
+      stack: [
         {
-          text: "NMU Business School",
-          style: "brand",
-          margin: [24, 20, 0, 0],
-        },
-        {
-          text: "Attendance Report",
-          style: "brandRight",
-          alignment: "right",
-          margin: [0, 20, 24, 0],
+          table: {
+            widths: ["*"],
+            body: [
+              [
+                {
+                  text: "NMU Business School — Attendance Report",
+                  style: "brandTitle",
+                  alignment: "center",
+                  fillColor: "#1E3A8A",
+                  color: "white",
+                  margin: [0, 10, 0, 10],
+                  border: [false, false, false, false],
+                },
+              ],
+              [
+                {
+                  text: reportName,
+                  style: "brandSub",
+                  alignment: "center",
+                  fillColor: "#1E3A8A",
+                  color: "white",
+                  margin: [0, 0, 0, 8],
+                  border: [false, false, false, false],
+                },
+              ],
+            ],
+          },
+          layout: "noBorders",
+          margin: [24, 12, 24, 0],
         },
       ],
     }),
@@ -126,10 +146,10 @@ export async function exportReportPdf(
       color: "#64748B",
     }),
     content: [
-      { text: reportName, style: "title" },
       {
         text: `Date Range: ${dateRange}    •    Total Students: ${stats.totalStudents}    •    Total Sessions: ${stats.totalSessions}    •    Generated: ${generated}`,
         style: "meta",
+        alignment: "center",
         margin: [0, 0, 0, 12],
       },
       {
@@ -159,8 +179,8 @@ export async function exportReportPdf(
       { text: sessionList, fontSize: 9, color: "#334155" },
     ],
     styles: {
-      brand: { fontSize: 12, bold: true, color: "#1E3A8A" },
-      brandRight: { fontSize: 10, color: "#64748B" },
+      brandTitle: { fontSize: 14, bold: true },
+      brandSub: { fontSize: 11, bold: true },
       title: { fontSize: 16, bold: true, color: "#0F172A", margin: [0, 0, 0, 4] },
       meta: { fontSize: 9, color: "#475569" },
       h2: { fontSize: 11, bold: true, color: "#1E3A8A" },
