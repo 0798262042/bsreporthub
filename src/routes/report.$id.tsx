@@ -57,6 +57,17 @@ import { exportReportPdf } from "@/lib/attendance/export-pdf";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
+// Extract a normalized "lecturer" signature from a Zoom session topic.
+// Topics look like "BS-18 May 2026-MMM Research – Dr Mashayamombe" — the
+// lecturer name is the last chunk after an en/em dash or " - ".
+function lecturerKey(topic: string): string {
+  const t = (topic || "").trim();
+  if (!t) return "";
+  const parts = t.split(/\s*[–—]\s*|\s-\s/);
+  const last = (parts[parts.length - 1] || t).toLowerCase();
+  return last.replace(/\s+/g, " ").trim();
+}
+
 export const Route = createFileRoute("/report/$id")({
   head: () => ({
     meta: [
@@ -170,6 +181,25 @@ function ReportPage() {
       if (stored.length === 0) {
         toast.error("No attendance data found in the uploaded file(s).");
         return;
+      }
+      // Lecturer lock — every session in a report must be for the same lecturer.
+      const existingLecturers = new Set(
+        (report?.sessions ?? [])
+          .map((s) => lecturerKey(s.topic))
+          .filter(Boolean),
+      );
+      if (existingLecturers.size > 0) {
+        const expected = [...existingLecturers][0];
+        const mismatch = stored.find((s) => {
+          const k = lecturerKey(s.topic);
+          return k && k !== expected;
+        });
+        if (mismatch) {
+          toast.error(
+            `You cannot mix lecturers in one report. This report is for "${expected}", but the upload is for "${lecturerKey(mismatch.topic)}". Please create a separate report for that lecturer.`,
+          );
+          return;
+        }
       }
       const dupes = await findDuplicateSessions(id, stored);
       const dupSet = new Set(dupes.map((d) => `${d.date}|${d.topic}`));
