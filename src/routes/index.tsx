@@ -3,7 +3,7 @@ import { ArrowRight, Sparkles, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { useReports } from "@/hooks/use-reports";
-import { CATEGORIES, type Category } from "@/lib/attendance/types";
+import { CATEGORIES, CATEGORY_LABELS, type Category } from "@/lib/attendance/types";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -13,13 +13,14 @@ function Index() {
   const navigate = useNavigate();
   const { reports } = useReports();
 
-  const counts: Record<Category, number> = { MBA: 0, PDBA: 0, MMM: 0 };
+  const counts: Record<Category, number> = { MBA: 0, PDBA: 0, MMM: 0, MBA_PDBA: 0 };
   for (const r of reports) counts[r.category] = (counts[r.category] ?? 0) + 1;
 
   const meta: Record<Category, { blurb: string }> = {
     MBA: { blurb: "Master of Business Administration attendance reports." },
     PDBA: { blurb: "Postgraduate Diploma in Business Admin attendance reports." },
     MMM: { blurb: "Master of Management (MMM) attendance reports." },
+    MBA_PDBA: { blurb: "Combined MBA & PDBA sessions in a single report." },
   };
 
   return (
@@ -56,7 +57,7 @@ function Index() {
             </p>
           </div>
 
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
             {CATEGORIES.map((c) => (
               <li key={c} className="h-full">
                 <button
@@ -74,13 +75,13 @@ function Index() {
                     </span>
                   </div>
                   <p className="mt-4 text-2xl font-bold tracking-tight text-foreground">
-                    {c}
+                    {CATEGORY_LABELS[c]}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
                     {meta[c].blurb}
                   </p>
                   <span className="mt-auto pt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    Open {c} reports <ArrowRight className="h-3.5 w-3.5" />
+                    Open {CATEGORY_LABELS[c]} reports <ArrowRight className="h-3.5 w-3.5" />
                   </span>
                 </button>
               </li>
