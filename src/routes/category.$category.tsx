@@ -159,7 +159,7 @@ function CategoryPage() {
             <p className="text-xs uppercase tracking-wider text-primary font-semibold">
               Category
             </p>
-            <h1 className="text-3xl font-bold tracking-tight">{category} Reports</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{label} Reports</h1>
             <p className="text-sm text-muted-foreground mt-1">
               {list.length} report{list.length === 1 ? "" : "s"} in this category.
             </p>
@@ -167,17 +167,17 @@ function CategoryPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-[image:var(--gradient-brand)] text-white">
-                <Plus className="mr-1 h-4 w-4" /> New {category} report
+                <Plus className="mr-1 h-4 w-4" /> New {label} report
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create a new {category} report</DialogTitle>
+                <DialogTitle>Create a new {label} report</DialogTitle>
               </DialogHeader>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={`e.g. ${category} HR Strategies — Q1`}
+                placeholder={`e.g. ${label} HR Strategies — Q1`}
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && doCreate()}
               />
@@ -196,7 +196,7 @@ function CategoryPage() {
             {list.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-card/60 p-12 text-center">
                 <p className="text-muted-foreground">
-                  No {category} reports yet. Drop a file on the right to get started.
+                  No {label} reports yet. Drop a file on the right to get started.
                 </p>
               </div>
             ) : (
@@ -279,8 +279,8 @@ function CategoryPage() {
           <div>
             <UploadDropzone onFiles={handleUpload} busy={busy} />
             <p className="mt-3 text-xs text-muted-foreground text-center">
-              Only {category} sessions will be accepted here. Topic must contain
-              "{category}".
+              Only {label} sessions accepted here. Topic must contain
+              "{CATEGORY_TOKENS[category].join(" + ")}".
             </p>
           </div>
         </div>
