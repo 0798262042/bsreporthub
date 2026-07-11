@@ -37,8 +37,23 @@ export type Report = {
   sessions: StoredSession[];
 };
 
-export type Category = "MBA" | "PDBA" | "MMM";
-export const CATEGORIES: Category[] = ["MBA", "PDBA", "MMM"];
+export type Category = "MBA" | "PDBA" | "MMM" | "MBA_PDBA";
+export const CATEGORIES: Category[] = ["MBA", "PDBA", "MMM", "MBA_PDBA"];
+
+export const CATEGORY_LABELS: Record<Category, string> = {
+  MBA: "MBA",
+  PDBA: "PDBA",
+  MMM: "MMM",
+  MBA_PDBA: "MBA & PDBA",
+};
+
+// Tokens required to appear in a Zoom topic for a session to belong to a category.
+export const CATEGORY_TOKENS: Record<Category, string[]> = {
+  MBA: ["MBA"],
+  PDBA: ["PDBA"],
+  MMM: ["MMM"],
+  MBA_PDBA: ["MBA", "PDBA"],
+};
 
 export type StudentRow = {
   name: string;

@@ -42,7 +42,7 @@ import {
 import { parseAttendanceFile } from "@/lib/attendance/parse";
 import { toStoredSession, relabelSessions } from "@/lib/attendance/combine";
 import type { Category } from "@/lib/attendance/types";
-import { CATEGORIES } from "@/lib/attendance/types";
+import { CATEGORIES, CATEGORY_LABELS, CATEGORY_TOKENS } from "@/lib/attendance/types";
 
 export const Route = createFileRoute("/category/$category")({
   component: CategoryPage,
@@ -53,14 +53,23 @@ function isCategory(c: string): c is Category {
 }
 
 // Validate that every session in an upload matches the target category by topic.
+// - MBA / PDBA / MMM: topic must contain that token AND none of the other two.
+// - MBA_PDBA: topic must contain BOTH "MBA" and "PDBA".
 function sessionsMatchCategory(
   stored: { topic: string }[],
   category: Category,
 ): { ok: boolean; badTopic?: string } {
-  const token = category.toUpperCase();
+  const required = CATEGORY_TOKENS[category];
+  const forbidden =
+    category === "MBA_PDBA"
+      ? (["MMM"] as const)
+      : (["MBA", "PDBA", "MMM"] as const).filter((t) => !required.includes(t));
   for (const s of stored) {
     const topic = (s.topic || "").toUpperCase();
-    if (!topic.includes(token)) return { ok: false, badTopic: s.topic };
+    if (!required.every((t) => topic.includes(t)))
+      return { ok: false, badTopic: s.topic };
+    if (forbidden.some((t) => topic.includes(t)))
+      return { ok: false, badTopic: s.topic };
   }
   return { ok: true };
 }
@@ -71,6 +80,7 @@ function CategoryPage() {
   const { reports } = useReports();
 
   const category: Category = isCategory(rawCategory) ? rawCategory : "MBA";
+  const label = CATEGORY_LABELS[category];
   const list = useMemo(
     () => reports.filter((r) => r.category === category),
     [reports, category],
@@ -81,7 +91,7 @@ function CategoryPage() {
   const [busy, setBusy] = useState(false);
 
   const doCreate = async () => {
-    const r = await createReport(name || `New ${category} report`, category);
+    const r = await createReport(name || `New ${label} report`, category);
     setName("");
     setOpen(false);
     if (r) navigate({ to: "/report/$id", params: { id: r.id } });
@@ -102,21 +112,17 @@ function CategoryPage() {
       }
       const match = sessionsMatchCategory(stored, category);
       if (!match.ok) {
-        toast.error(
-          `This file is not a ${category} session (topic: "${match.badTopic}"). Upload it under the correct category.`,
-        );
+        toast.error(`Not a ${label} file. Topic: "${match.badTopic}".`);
         return;
       }
       const dup = await findReportContainingSessions(stored);
       if (dup) {
-        toast.error(
-          `Already uploaded in "${dup.report.name}". Duplicates are not allowed.`,
-        );
+        toast.error(`Already uploaded in "${dup.report.name}".`);
         navigate({ to: "/report/$id", params: { id: dup.report.id } });
         return;
       }
       const report = await createReport(
-        files[0].name.replace(/\.(xlsx?|csv)$/i, "") || `New ${category} report`,
+        files[0].name.replace(/\.(xlsx?|csv)$/i, "") || `New ${label} report`,
         category,
       );
       if (!report) {
@@ -125,7 +131,7 @@ function CategoryPage() {
       }
       const relabeled = relabelSessions(stored);
       await addSessions(report.id, relabeled);
-      toast.success(`Created ${category} report with ${relabeled.length} session(s).`);
+      toast.success(`Created ${label} report with ${relabeled.length} session(s).`);
       navigate({ to: "/report/$id", params: { id: report.id } });
     } catch (e) {
       console.error(e);
@@ -153,7 +159,7 @@ function CategoryPage() {
             <p className="text-xs uppercase tracking-wider text-primary font-semibold">
               Category
             </p>
-            <h1 className="text-3xl font-bold tracking-tight">{category} Reports</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{label} Reports</h1>
             <p className="text-sm text-muted-foreground mt-1">
               {list.length} report{list.length === 1 ? "" : "s"} in this category.
             </p>
@@ -161,17 +167,17 @@ function CategoryPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-[image:var(--gradient-brand)] text-white">
-                <Plus className="mr-1 h-4 w-4" /> New {category} report
+                <Plus className="mr-1 h-4 w-4" /> New {label} report
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create a new {category} report</DialogTitle>
+                <DialogTitle>Create a new {label} report</DialogTitle>
               </DialogHeader>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={`e.g. ${category} HR Strategies — Q1`}
+                placeholder={`e.g. ${label} HR Strategies — Q1`}
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && doCreate()}
               />
@@ -190,7 +196,7 @@ function CategoryPage() {
             {list.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-card/60 p-12 text-center">
                 <p className="text-muted-foreground">
-                  No {category} reports yet. Drop a file on the right to get started.
+                  No {label} reports yet. Drop a file on the right to get started.
                 </p>
               </div>
             ) : (
@@ -273,8 +279,8 @@ function CategoryPage() {
           <div>
             <UploadDropzone onFiles={handleUpload} busy={busy} />
             <p className="mt-3 text-xs text-muted-foreground text-center">
-              Only {category} sessions will be accepted here. Topic must contain
-              "{category}".
+              Only {label} sessions accepted here. Topic must contain
+              "{CATEGORY_TOKENS[category].join(" + ")}".
             </p>
           </div>
         </div>
