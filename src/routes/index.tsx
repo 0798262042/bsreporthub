@@ -56,14 +56,14 @@ function Index() {
             </p>
           </div>
 
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
             {CATEGORIES.map((c) => (
-              <li key={c}>
+              <li key={c} className="h-full">
                 <button
                   onClick={() =>
                     navigate({ to: "/category/$category", params: { category: c } })
                   }
-                  className="w-full text-left rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-all hover:-translate-y-0.5"
+                  className="w-full h-full min-h-[220px] flex flex-col text-left rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-all hover:-translate-y-0.5"
                 >
                   <div className="flex items-center justify-between">
                     <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[image:var(--gradient-brand)] text-white">
@@ -76,10 +76,10 @@ function Index() {
                   <p className="mt-4 text-2xl font-bold tracking-tight text-foreground">
                     {c}
                   </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
                     {meta[c].blurb}
                   </p>
-                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                  <span className="mt-auto pt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
                     Open {c} reports <ArrowRight className="h-3.5 w-3.5" />
                   </span>
                 </button>
