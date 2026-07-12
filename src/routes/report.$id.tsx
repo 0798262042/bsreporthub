@@ -68,6 +68,38 @@ function lecturerKey(topic: string): string {
   return last.replace(/\s+/g, " ").trim();
 }
 
+// Extract a normalized "module" signature — the middle chunk(s) of a topic
+// like "BS-23 June 2026 - PDBA AND MBA HR STRATEGIES ... - PROF WERNER".
+// Falls back to the whole topic when there aren't enough dash-separated parts.
+function moduleKey(topic: string): string {
+  const t = (topic || "").trim();
+  if (!t) return "";
+  const parts = t
+    .split(/\s*[–—]\s*|\s-\s/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  let mid: string;
+  if (parts.length >= 3) mid = parts.slice(1, -1).join(" ");
+  else if (parts.length === 2) mid = parts[0];
+  else mid = parts[0] ?? t;
+  // Strip a leading "BS-<date>" style prefix if it slipped through.
+  mid = mid.replace(/^bs[\s-]*\d.*?\d{4}\s*[-–—:]?\s*/i, "").trim();
+  return mid.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function prettyLecturer(topic: string): string {
+  const t = (topic || "").trim();
+  const parts = t.split(/\s*[–—]\s*|\s-\s/).map((p) => p.trim()).filter(Boolean);
+  return parts[parts.length - 1] || t;
+}
+function prettyModule(topic: string): string {
+  const t = (topic || "").trim();
+  const parts = t.split(/\s*[–—]\s*|\s-\s/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 3) return parts.slice(1, -1).join(" — ");
+  if (parts.length === 2) return parts[0];
+  return t;
+}
+
 export const Route = createFileRoute("/report/$id")({
   head: () => ({
     meta: [
@@ -195,8 +227,33 @@ function ReportPage() {
           return k && k !== expected;
         });
         if (mismatch) {
+          const existingSample = (report?.sessions ?? []).find(
+            (s) => lecturerKey(s.topic) === expected,
+          );
           toast.error(
-            `You cannot mix lecturers in one report. This report is for "${expected}", but the upload is for "${lecturerKey(mismatch.topic)}". Please create a separate report for that lecturer.`,
+            `This attendance file belongs to ${prettyLecturer(mismatch.topic)} and cannot be uploaded into the ${existingSample ? prettyLecturer(existingSample.topic) : expected} report.`,
+          );
+          return;
+        }
+      }
+      // Module lock — every session in a report must be for the same module.
+      const existingModules = new Set(
+        (report?.sessions ?? [])
+          .map((s) => moduleKey(s.topic))
+          .filter(Boolean),
+      );
+      if (existingModules.size > 0) {
+        const expectedModule = [...existingModules][0];
+        const mismatch = stored.find((s) => {
+          const k = moduleKey(s.topic);
+          return k && k !== expectedModule;
+        });
+        if (mismatch) {
+          const existingSample = (report?.sessions ?? []).find(
+            (s) => moduleKey(s.topic) === expectedModule,
+          );
+          toast.error(
+            `This attendance file belongs to a different module (${prettyModule(mismatch.topic)}) and cannot be added to the ${existingSample ? prettyModule(existingSample.topic) : expectedModule} report.`,
           );
           return;
         }
