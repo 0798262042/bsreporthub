@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   BarChart,
   Bar,
@@ -14,12 +15,53 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { FileSpreadsheet, Users, Layers, ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
+import {
+  FileSpreadsheet,
+  Users,
+  Layers,
+  ShieldCheck,
+  ArrowRight,
+  Loader2,
+  Search,
+  Trash2,
+  Activity,
+  UserCog,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { CATEGORY_LABELS, type Category } from "@/lib/attendance/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  listAllUsers,
+  setUserAdmin,
+  deleteUserAccount,
+  getRecentActivity,
+} from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
