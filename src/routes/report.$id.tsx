@@ -188,7 +188,7 @@ function ReportPage() {
     return (
       <div className="min-h-screen">
         <BrandHeader />
-        <main className="mx-auto max-w-7xl px-6 py-16 text-center">
+        <main className="mx-auto w-full max-w-[1600px] px-4 py-16 text-center sm:px-6 lg:px-8">
           <p className="text-lg font-semibold">Report not found</p>
           <p className="mt-2 text-muted-foreground">
             It may have been deleted from this browser.
