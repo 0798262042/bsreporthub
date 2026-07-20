@@ -37,6 +37,7 @@ export async function exportReportPdf(
   const stats = computeStats(students, sessions.length);
   const dateRange = reportDateRange(sessions);
   const generated = new Date().toLocaleString();
+  const subtitle = cleanSubtitle(reportName);
 
   const header = ["Full Name"];
   for (const s of sessions) {
@@ -129,7 +130,7 @@ export async function exportReportPdf(
               ],
               [
                 {
-                  text: reportName,
+                  text: subtitle,
                   style: "brandSub",
                   alignment: "center",
                   fillColor: "#1E3A8A",
@@ -179,11 +180,8 @@ export async function exportReportPdf(
           statBlock("Highest", `${stats.highest}%`),
           statBlock("Lowest", `${stats.lowest}%`),
           statBlock("Perfect", stats.perfect),
-          statBlock("Absent", stats.absent),
         ],
       },
-      { text: "Sessions", style: "h2", margin: [0, 16, 0, 6] },
-      { text: sessionList, fontSize: 9, color: "#334155" },
     ],
     styles: {
       brandTitle: { fontSize: 14, bold: true },
