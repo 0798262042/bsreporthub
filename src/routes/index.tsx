@@ -27,7 +27,7 @@ function Index() {
     <div className="min-h-screen bg-[image:var(--gradient-soft)]">
       <BrandHeader />
 
-      <main className="mx-auto max-w-7xl px-6 py-12">
+      <main className="mx-auto w-full max-w-[1600px] px-4 py-12 sm:px-6 lg:px-8">
         <section className="max-w-3xl">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-primary">
