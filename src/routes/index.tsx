@@ -13,10 +13,9 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { session } = useAuth();
-  if (!session) return <Landing />;
-
   const navigate = useNavigate();
   const { reports } = useReports();
+  if (!session) return <Landing />;
 
   const counts: Record<Category, number> = { MBA: 0, PDBA: 0, MMM: 0, MBA_PDBA: 0 };
   for (const r of reports) counts[r.category] = (counts[r.category] ?? 0) + 1;
