@@ -87,6 +87,8 @@ export function exportReportExcel(
   students: StudentRow[],
   downloadTab?: Window | null,
 ) {
+  const filename = `${reportName.replace(/[^\w\-]+/g, "_")}_attendance.xlsx`;
+  const activeDownloadTab = downloadTab ?? openDownloadTab(filename);
   const stats = computeStats(students, sessions.length);
   const dateRange = reportDateRange(sessions);
   const generated = new Date().toLocaleString();
@@ -207,13 +209,12 @@ export function exportReportExcel(
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-  const filename = `${reportName.replace(/[^\w\-]+/g, "_")}_attendance.xlsx`;
   const out = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
   downloadBlob(
     new Blob([out], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }),
     filename,
-    downloadTab ?? openDownloadTab(filename),
+    activeDownloadTab,
   );
 }
