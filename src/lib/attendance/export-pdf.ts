@@ -1,5 +1,5 @@
 import type { StoredSession, StudentRow } from "./types";
-import { saveAs } from "file-saver";
+import { downloadBlob, openDownloadTab } from "../download";
 import { formatTime } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
 
@@ -8,6 +8,8 @@ export async function exportReportPdf(
   sessions: StoredSession[],
   students: StudentRow[],
 ) {
+  const filename = `${reportName.replace(/[^\w\-]+/g, "_")}_attendance.pdf`;
+  const downloadTab = openDownloadTab(filename);
   const [{ default: pdfMake }, vfsFonts] = await Promise.all([
     import("pdfmake/build/pdfmake"),
     import("pdfmake/build/vfs_fonts"),
@@ -195,10 +197,9 @@ export async function exportReportPdf(
     defaultStyle: { fontSize: 8 },
   };
 
-  const filename = `${reportName.replace(/[^\w\-]+/g, "_")}_attendance.pdf`;
   await new Promise<void>((resolve) => {
     pm.createPdf(dd).getBlob((blob) => {
-      saveAs(blob, filename);
+      downloadBlob(blob, filename, downloadTab);
       resolve();
     });
   });
