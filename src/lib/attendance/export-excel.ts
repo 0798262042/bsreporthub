@@ -85,10 +85,10 @@ export function exportReportExcel(
   reportName: string,
   sessions: StoredSession[],
   students: StudentRow[],
-  downloadTab?: Window | null,
+  filenameBase?: string,
 ) {
-  const filename = `${reportName.replace(/[^\w\-]+/g, "_")}_attendance.xlsx`;
-  const activeDownloadTab = downloadTab ?? openDownloadTab(filename);
+  const base = (filenameBase || reportName).replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "");
+  const filename = `${base || "attendance"}.xlsx`;
   const stats = computeStats(students, sessions.length);
   const dateRange = reportDateRange(sessions);
   const generated = new Date().toLocaleString();
