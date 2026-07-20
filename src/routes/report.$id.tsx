@@ -243,9 +243,6 @@ function ReportPage() {
           return k && k !== expected;
         });
         if (mismatch) {
-          const existingSample = (report?.sessions ?? []).find(
-            (s) => lecturerKey(s.topic) === expected,
-          );
           toast.error(
             `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
           );
@@ -265,9 +262,6 @@ function ReportPage() {
           return k && k !== expectedModule;
         });
         if (mismatch) {
-          const existingSample = (report?.sessions ?? []).find(
-            (s) => moduleKey(s.topic) === expectedModule,
-          );
           toast.error(
             `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
           );
