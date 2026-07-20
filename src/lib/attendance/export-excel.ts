@@ -1,5 +1,5 @@
 import XLSX from "xlsx-js-style";
-import { downloadBlob, openDownloadTab } from "../download";
+import { downloadBlob } from "../download";
 import type { StoredSession, StudentRow } from "./types";
 import { formatTime, formatDate } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
@@ -215,6 +215,5 @@ export function exportReportExcel(
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }),
     filename,
-    activeDownloadTab,
   );
 }
