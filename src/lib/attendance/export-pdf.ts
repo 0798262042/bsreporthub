@@ -13,6 +13,7 @@ export async function exportReportPdf(
   ]);
   const pm = pdfMake as unknown as {
     vfs: Record<string, string>;
+    addVirtualFileSystem?: (vfs: Record<string, string>) => void;
     createPdf: (dd: unknown) => { download: (n: string) => void };
   };
   const vfsMod = vfsFonts as unknown as {
@@ -25,7 +26,13 @@ export async function exportReportPdf(
     (vfsMod.default && (vfsMod.default as { vfs?: Record<string, string> }).vfs) ||
     (vfsMod.default as Record<string, string>) ||
     vfsMod.pdfMake?.vfs;
-  if (vfs) pm.vfs = vfs;
+  if (vfs) {
+    if (typeof pm.addVirtualFileSystem === "function") {
+      pm.addVirtualFileSystem(vfs);
+    } else {
+      pm.vfs = vfs;
+    }
+  }
 
   const stats = computeStats(students, sessions.length);
   const dateRange = reportDateRange(sessions);
