@@ -324,7 +324,9 @@ function ReportPage() {
   const handleExportExcel = () => {
     if (!combined || combined.students.length === 0) return;
     try {
-      exportReportExcel(report.name, combined.sessions, combined.students);
+      const topic = report.sessions[0]?.topic ?? report.name;
+      const filenameBase = prettyModuleAndLecturer(topic);
+      exportReportExcel(report.name, combined.sessions, combined.students, filenameBase);
       void logActivity({
         action: "report.exported_excel",
         resourceType: "report",
@@ -342,7 +344,9 @@ function ReportPage() {
     if (!combined || combined.students.length === 0 || exportingPdf) return;
     setExportingPdf(true);
     try {
-      await exportReportPdf(report.name, combined.sessions, combined.students);
+      const topic = report.sessions[0]?.topic ?? report.name;
+      const filenameBase = prettyModuleAndLecturer(topic);
+      await exportReportPdf(report.name, combined.sessions, combined.students, filenameBase);
       void logActivity({
         action: "report.exported_pdf",
         resourceType: "report",
