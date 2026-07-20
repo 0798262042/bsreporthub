@@ -14,8 +14,6 @@ import {
   Cell,
   CartesianGrid,
   Legend,
-  LineChart,
-  Line,
 } from "recharts";
 import {
   FileSpreadsheet,
