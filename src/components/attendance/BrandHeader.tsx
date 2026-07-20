@@ -3,12 +3,14 @@ import { GraduationCap, LayoutDashboard, LogOut, ShieldCheck, User as UserIcon }
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { logActivity } from "@/lib/activity";
 
 export function BrandHeader() {
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
 
   async function handleSignOut() {
+    await logActivity({ action: "user.logout" });
     await signOut();
     toast.success("Signed out.");
     navigate({ to: "/auth", replace: true });

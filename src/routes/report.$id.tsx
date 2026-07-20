@@ -55,6 +55,7 @@ import { formatDate, formatTime } from "@/lib/attendance/normalize";
 import { exportReportExcel } from "@/lib/attendance/export-excel";
 import { exportReportPdf } from "@/lib/attendance/export-pdf";
 import { cn } from "@/lib/utils";
+import { logActivity } from "@/lib/activity";
 import type { DateRange } from "react-day-picker";
 
 // Extract a normalized "lecturer" signature from a Zoom session topic.
@@ -268,6 +269,15 @@ function ReportPage() {
       }
       if (fresh.length === 0) return;
       await addSessions(id, fresh);
+      void logActivity({
+        action: "spreadsheet.uploaded",
+        resourceType: "report",
+        resourceId: id,
+        details: {
+          filename: files.map((f) => f.name).join(", "),
+          sessions: fresh.length,
+        },
+      });
       toast.success(`Added ${fresh.length} session(s).`);
     } catch (e) {
       console.error(e);
@@ -279,6 +289,12 @@ function ReportPage() {
 
   const handleDeleteSession = (sessionId: string) => {
     removeSession(id, sessionId);
+    void logActivity({
+      action: "session.deleted",
+      resourceType: "session",
+      resourceId: sessionId,
+      details: { reportId: id },
+    });
     toast.success("Session removed");
   };
 
@@ -372,18 +388,30 @@ function ReportPage() {
             <Button
               variant="outline"
               disabled={combined!.students.length === 0}
-              onClick={() =>
-                exportReportExcel(report.name, combined!.sessions, combined!.students)
-              }
+              onClick={() => {
+                exportReportExcel(report.name, combined!.sessions, combined!.students);
+                void logActivity({
+                  action: "report.exported_excel",
+                  resourceType: "report",
+                  resourceId: id,
+                  details: { name: report.name },
+                });
+              }}
             >
               <Download className="h-4 w-4 mr-1.5" /> Excel
             </Button>
             <Button
               className="bg-[image:var(--gradient-brand)] text-white shadow-[var(--shadow-card)]"
               disabled={combined!.students.length === 0}
-              onClick={() =>
-                exportReportPdf(report.name, combined!.sessions, combined!.students)
-              }
+              onClick={() => {
+                exportReportPdf(report.name, combined!.sessions, combined!.students);
+                void logActivity({
+                  action: "report.exported_pdf",
+                  resourceType: "report",
+                  resourceId: id,
+                  details: { name: report.name },
+                });
+              }}
             >
               <FileText className="h-4 w-4 mr-1.5" /> PDF
             </Button>
