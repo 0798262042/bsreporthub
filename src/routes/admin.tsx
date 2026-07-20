@@ -44,6 +44,7 @@ import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { CATEGORY_LABELS, type Category } from "@/lib/attendance/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
