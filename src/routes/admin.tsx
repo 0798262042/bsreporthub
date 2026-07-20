@@ -120,6 +120,7 @@ async function fetchStats(): Promise<Stats> {
 function AdminDashboard() {
   const { isAdmin, loading, session } = useAuth();
   const navigate = useNavigate();
+  const [tab, setTab] = useState<"overview" | "users" | "activity">("overview");
 
   useEffect(() => {
     if (loading) return;
@@ -166,12 +167,26 @@ function AdminDashboard() {
           </Link>
         </div>
 
-        {isLoading || !data ? (
-          <div className="mt-16 flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : (
-          <>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="mt-8">
+          <TabsList>
+            <TabsTrigger value="overview">
+              <Layers className="h-4 w-4 mr-2" /> Overview
+            </TabsTrigger>
+            <TabsTrigger value="users">
+              <UserCog className="h-4 w-4 mr-2" /> User management
+            </TabsTrigger>
+            <TabsTrigger value="activity">
+              <Activity className="h-4 w-4 mr-2" /> Activity
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-6">
+            {isLoading || !data ? (
+              <div className="mt-16 flex justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
             <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 icon={<Users className="h-5 w-5" />}
@@ -290,8 +305,18 @@ function AdminDashboard() {
                 )}
               </Panel>
             </section>
-          </>
-        )}
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="users" className="mt-6">
+            <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="activity" className="mt-6">
+            <ActivityFeed />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
