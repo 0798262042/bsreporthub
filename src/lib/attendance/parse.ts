@@ -114,7 +114,7 @@ export async function parseAttendanceFile(file: File): Promise<ParsedFile> {
     // Attendee header
     const attIdx = findHeaderRow(rows, ["name", "join time", "leave time"]);
     if (attIdx < 0) {
-      warnings.push(`Sheet "${sheetName}" is missing attendance columns; skipped.`);
+      warnings.push(`Please make sure that you upload the right file under the right lecture category.`);
       continue;
     }
     const attHeader = (rows[attIdx] as string[]).map((h) =>

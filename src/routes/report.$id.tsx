@@ -211,7 +211,7 @@ function ReportPage() {
         for (const s of parsed.sessions) stored.push(toStoredSession(s));
       }
       if (stored.length === 0) {
-        toast.error("No attendance data found in the uploaded file(s).");
+        toast.error("Unable to import attendance.");
         return;
       }
       // Lecturer lock — every session in a report must be for the same lecturer.
