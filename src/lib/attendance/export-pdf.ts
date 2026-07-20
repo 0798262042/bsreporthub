@@ -258,6 +258,28 @@ function statBlock(label: string, value: string | number) {
   };
 }
 
+function formatSessionDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function _oldStat(label: string, value: string | number) {
+  return {
+    stack: [
+      { text: label, fontSize: 8, color: "#64748B" },
+      { text: String(value), fontSize: 14, bold: true, color: "#1E3A8A" },
+    ],
+    margin: [0, 0, 12, 0],
+  };
+}
+
 // Extract "MODULE – LECTURER" from a report name like
 // "BS-15 July 2026 - MBA RESEARCH PROJECT PROPOSAL - DR MSUTHWANA".
 function cleanSubtitle(name: string): string {
