@@ -14,8 +14,6 @@ import {
   Cell,
   CartesianGrid,
   Legend,
-  LineChart,
-  Line,
 } from "recharts";
 import {
   FileSpreadsheet,
@@ -253,73 +251,6 @@ function OverviewTab() {
           label="Excel downloads"
           value={data.excelDownloads}
         />
-      </section>
-
-      <section className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel title="Monthly uploads">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={data.monthlyUploads}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="Uploads" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Panel>
-        <Panel title="Attendance trends (avg %)">
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={data.attendanceTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} unit="%" />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Line
-                type="monotone"
-                dataKey="Attendance"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </Panel>
-        <Panel title="Reports generated over time">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={data.monthlyReports}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="Reports" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Panel>
-        <Panel title="Attendance distribution">
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie
-                data={data.attendanceDistribution}
-                dataKey="count"
-                nameKey="range"
-                innerRadius={55}
-                outerRadius={95}
-                paddingAngle={3}
-              >
-                {data.attendanceDistribution.map((_, i) => (
-                  <Cell
-                    key={i}
-                    fill={
-                      ["hsl(var(--destructive))", "hsl(var(--warning))", "hsl(var(--primary))", "hsl(var(--success))"][i]
-                    }
-                  />
-                ))}
-              </Pie>
-              <Legend />
-              <Tooltip contentStyle={tooltipStyle} />
-            </PieChart>
-          </ResponsiveContainer>
-        </Panel>
       </section>
 
       <section className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
