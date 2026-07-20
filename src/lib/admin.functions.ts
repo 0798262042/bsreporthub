@@ -25,7 +25,7 @@ export const listAllUsers = createServerFn({ method: "GET" })
     const [profilesRes, rolesRes, authRes] = await Promise.all([
       supabaseAdmin
         .from("profiles")
-        .select("id, first_name, last_name, email, phone, department, created_at")
+        .select("id, first_name, last_name, email, phone, department, created_at, is_active")
         .order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("user_id, role"),
       supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
@@ -42,8 +42,11 @@ export const listAllUsers = createServerFn({ method: "GET" })
     }
 
     const lastSignInByUser = new Map<string, string | null>();
+    const bannedByUser = new Map<string, boolean>();
     for (const u of authRes.data?.users ?? []) {
       lastSignInByUser.set(u.id, u.last_sign_in_at ?? null);
+      const bu = (u as { banned_until?: string | null }).banned_until ?? null;
+      bannedByUser.set(u.id, !!bu && new Date(bu).getTime() > Date.now());
     }
 
     return (profilesRes.data ?? []).map((p) => ({
@@ -57,6 +60,8 @@ export const listAllUsers = createServerFn({ method: "GET" })
       roles: rolesByUser.get(p.id) ?? [],
       is_admin: (rolesByUser.get(p.id) ?? []).includes("admin"),
       last_sign_in_at: lastSignInByUser.get(p.id) ?? null,
+      is_active:
+        (p as { is_active?: boolean }).is_active !== false && !bannedByUser.get(p.id),
     }));
   });
 
