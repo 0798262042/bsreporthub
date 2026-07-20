@@ -81,7 +81,7 @@ export async function logActivity(input: LogInput) {
       action: input.action,
       resource_type: input.resourceType ?? null,
       resource_id: input.resourceId ?? null,
-      details: input.details ?? {},
+      details: (input.details ?? {}) as never,
     });
   } catch (e) {
     console.warn("activity log failed", e);
