@@ -88,6 +88,8 @@
   --ring: oklch(0.55 0.18 262);
   --success: oklch(0.62 0.16 150);
   --warning: oklch(0.75 0.16 75);
+  --gold: oklch(0.82 0.15 82);
+  --gold-ink: oklch(0.32 0.08 75);
   --gradient-brand: linear-gradient(135deg, oklch(0.36 0.16 265), oklch(0.55 0.19 260));
   --gradient-soft: linear-gradient(180deg, oklch(0.97 0.02 250), oklch(0.99 0.005 250));
   --shadow-card: 0 1px 2px oklch(0.36 0.16 265 / 0.05), 0 8px 24px -12px oklch(0.36 0.16 265 / 0.15);

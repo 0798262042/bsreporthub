@@ -4,14 +4,18 @@ import { Button } from "@/components/ui/button";
 import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { useReports } from "@/hooks/use-reports";
 import { CATEGORIES, CATEGORY_LABELS, type Category } from "@/lib/attendance/types";
+import { useAuth } from "@/hooks/use-auth";
+import { Landing } from "@/components/Landing";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
 function Index() {
+  const { session } = useAuth();
   const navigate = useNavigate();
   const { reports } = useReports();
+  if (!session) return <Landing />;
 
   const counts: Record<Category, number> = { MBA: 0, PDBA: 0, MMM: 0, MBA_PDBA: 0 };
   for (const r of reports) counts[r.category] = (counts[r.category] ?? 0) + 1;

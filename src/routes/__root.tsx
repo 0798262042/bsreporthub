@@ -144,7 +144,7 @@ function RootComponent() {
   );
 }
 
-const PUBLIC_ROUTES = ["/auth", "/forgot-password", "/reset-password"];
+const PUBLIC_ROUTES = ["/", "/auth", "/forgot-password", "/reset-password"];
 
 function AuthGate() {
   const { session, loading } = useAuth();
