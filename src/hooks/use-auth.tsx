@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity";
 
 type Role = "admin" | "user";
 
@@ -22,9 +23,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Register listener FIRST, then check existing session
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (!s) setRole(null);
+      if (event === "SIGNED_IN") {
+        // Fire-and-forget audit log.
+        void logActivity({ action: "user.login" });
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);

@@ -43,6 +43,7 @@ import { parseAttendanceFile } from "@/lib/attendance/parse";
 import { toStoredSession, relabelSessions } from "@/lib/attendance/combine";
 import type { Category } from "@/lib/attendance/types";
 import { CATEGORIES, CATEGORY_LABELS, CATEGORY_TOKENS } from "@/lib/attendance/types";
+import { logActivity } from "@/lib/activity";
 
 export const Route = createFileRoute("/category/$category")({
   component: CategoryPage,
@@ -94,7 +95,15 @@ function CategoryPage() {
     const r = await createReport(name || `New ${label} report`, category);
     setName("");
     setOpen(false);
-    if (r) navigate({ to: "/report/$id", params: { id: r.id } });
+    if (r) {
+      void logActivity({
+        action: "report.created",
+        resourceType: "report",
+        resourceId: r.id,
+        details: { name: r.name, category },
+      });
+      navigate({ to: "/report/$id", params: { id: r.id } });
+    }
   };
 
   const handleUpload = async (files: File[]) => {
@@ -131,6 +140,21 @@ function CategoryPage() {
       }
       const relabeled = relabelSessions(stored);
       await addSessions(report.id, relabeled);
+      void logActivity({
+        action: "report.created",
+        resourceType: "report",
+        resourceId: report.id,
+        details: { name: report.name, category },
+      });
+      void logActivity({
+        action: "spreadsheet.uploaded",
+        resourceType: "report",
+        resourceId: report.id,
+        details: {
+          filename: files.map((f) => f.name).join(", "),
+          sessions: relabeled.length,
+        },
+      });
       toast.success(`Created ${label} report with ${relabeled.length} session(s).`);
       navigate({ to: "/report/$id", params: { id: report.id } });
     } catch (e) {
@@ -242,6 +266,12 @@ function CategoryPage() {
                               className="bg-destructive text-destructive-foreground"
                               onClick={() => {
                                 deleteReport(r.id);
+                                void logActivity({
+                                  action: "report.deleted",
+                                  resourceType: "report",
+                                  resourceId: r.id,
+                                  details: { name: r.name, category: r.category },
+                                });
                                 toast.success("Report deleted");
                               }}
                             >
