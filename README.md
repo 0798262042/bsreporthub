@@ -22,7 +22,7 @@ It provides NMU staff with a faster and more efficient way to monitor students a
 -  Secure authentication with Admin and User(staff memebers) roles
 -  Modern, responsive user interface
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 - React
 - TypeScript
