@@ -118,8 +118,6 @@ function SignUpForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [department, setDepartment] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -143,8 +141,6 @@ function SignUpForm() {
         data: {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          phone: phone.trim(),
-          department: department.trim(),
         },
       },
     });
@@ -172,16 +168,6 @@ function SignUpForm() {
       <div className="space-y-1.5">
         <Label htmlFor="su-email">Email</Label>
         <Input id="su-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="su-phone">Phone (optional)</Label>
-          <Input id="su-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="su-dept">Department</Label>
-          <Input id="su-dept" value={department} onChange={(e) => setDepartment(e.target.value)} />
-        </div>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="su-pw">Password</Label>
