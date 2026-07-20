@@ -1,4 +1,5 @@
 import XLSX from "xlsx-js-style";
+import { saveAs } from "file-saver";
 import type { StoredSession, StudentRow } from "./types";
 import { formatTime, formatDate } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
