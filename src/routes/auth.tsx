@@ -4,6 +4,7 @@ import { GraduationCap, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -95,7 +96,7 @@ function SignInForm() {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="si-password">Password</Label>
-        <Input id="si-password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordInput id="si-password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
       </div>
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -171,11 +172,11 @@ function SignUpForm() {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="su-pw">Password</Label>
-        <Input id="su-pw" type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordInput id="su-pw" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="su-pw2">Confirm password</Label>
-        <Input id="su-pw2" type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <PasswordInput id="su-pw2" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </div>
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create account"}

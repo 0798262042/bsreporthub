@@ -44,6 +44,7 @@ import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { CATEGORY_LABELS, type Category } from "@/lib/attendance/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -674,8 +675,7 @@ function CreateUserDialog({
           </div>
           <div className="space-y-1.5">
             <Label>Temporary password (min 8 chars)</Label>
-            <Input
-              type="text"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -813,8 +813,7 @@ function ResetPasswordDialog({
             sessions.
           </DialogDescription>
         </DialogHeader>
-        <Input
-          type="text"
+        <PasswordInput
           value={pw}
           onChange={(e) => setPw(e.target.value)}
           placeholder="New password"
