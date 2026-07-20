@@ -96,6 +96,7 @@ export type Database = {
           hidden_names: Json
           id: string
           name: string
+          owner_id: string | null
           updated_at: string
         }
         Insert: {
@@ -104,6 +105,7 @@ export type Database = {
           hidden_names?: Json
           id?: string
           name: string
+          owner_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -112,6 +114,7 @@ export type Database = {
           hidden_names?: Json
           id?: string
           name?: string
+          owner_id?: string | null
           updated_at?: string
         }
         Relationships: []
