@@ -208,3 +208,13 @@ function statBlock(label: string, value: string | number) {
     margin: [0, 0, 12, 0],
   };
 }
+
+// Extract "MODULE – LECTURER" from a report name like
+// "BS-15 July 2026 - MBA RESEARCH PROJECT PROPOSAL - DR MSUTHWANA".
+function cleanSubtitle(name: string): string {
+  let s = name.replace(/\s+\d{1,2}:\d{2}\s*(?:to|-|–|—)\s*\d{1,2}:\d{2}\s*/gi, " ").trim();
+  const parts = s.split(/\s*[-–—]\s*/).map((p) => p.trim()).filter(Boolean);
+  const dateLike = /\b(?:\d{1,2}\s+)?(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{0,4}\b|\bbs[-\s]?\d/i;
+  const kept = parts.filter((p, i) => !(i === 0 && dateLike.test(p)));
+  return (kept.length ? kept : parts).join(" – ");
+}
