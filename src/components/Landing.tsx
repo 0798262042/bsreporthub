@@ -263,7 +263,7 @@ export function Landing() {
         <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Powerful features for smarter attendance management
+              Powerful features
             </h2>
             <p className="mt-3 text-muted-foreground">
               Everything you need to move from raw Zoom exports to publication-ready reports.
