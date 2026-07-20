@@ -674,8 +674,7 @@ function CreateUserDialog({
           </div>
           <div className="space-y-1.5">
             <Label>Temporary password (min 8 chars)</Label>
-            <Input
-              type="text"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -813,8 +812,7 @@ function ResetPasswordDialog({
             sessions.
           </DialogDescription>
         </DialogHeader>
-        <Input
-          type="text"
+        <PasswordInput
           value={pw}
           onChange={(e) => setPw(e.target.value)}
           placeholder="New password"
