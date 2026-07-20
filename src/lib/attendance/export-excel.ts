@@ -3,6 +3,7 @@ import { downloadBlob } from "../download";
 import type { StoredSession, StudentRow } from "./types";
 import { formatTime, formatDate } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
+import { buildExportFilename } from "./filename";
 
 type Cell = XLSX.CellObject;
 
@@ -87,8 +88,7 @@ export function exportReportExcel(
   students: StudentRow[],
   filenameBase?: string,
 ) {
-  const base = (filenameBase || reportName).replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "");
-  const filename = `${base || "attendance"}.xlsx`;
+  const filename = buildExportFilename(filenameBase, reportName, "xlsx");
   const stats = computeStats(students, sessions.length);
   const dateRange = reportDateRange(sessions);
   const generated = new Date().toLocaleString();
