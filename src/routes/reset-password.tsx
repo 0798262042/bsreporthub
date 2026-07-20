@@ -4,6 +4,7 @@ import { GraduationCap, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
@@ -69,11 +70,11 @@ function ResetPasswordPage() {
             <form onSubmit={onSubmit} className="mt-6 space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="rp-pw">New password</Label>
-                <Input id="rp-pw" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                <PasswordInput id="rp-pw" required value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="rp-pw2">Confirm password</Label>
-                <Input id="rp-pw2" type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+                <PasswordInput id="rp-pw2" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
               </div>
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update password"}
