@@ -37,6 +37,7 @@ export async function exportReportPdf(
   const stats = computeStats(students, sessions.length);
   const dateRange = reportDateRange(sessions);
   const generated = new Date().toLocaleString();
+  const subtitle = cleanSubtitle(reportName);
 
   const header = ["Full Name"];
   for (const s of sessions) {
@@ -129,7 +130,7 @@ export async function exportReportPdf(
               ],
               [
                 {
-                  text: reportName,
+                  text: subtitle,
                   style: "brandSub",
                   alignment: "center",
                   fillColor: "#1E3A8A",
@@ -179,11 +180,8 @@ export async function exportReportPdf(
           statBlock("Highest", `${stats.highest}%`),
           statBlock("Lowest", `${stats.lowest}%`),
           statBlock("Perfect", stats.perfect),
-          statBlock("Absent", stats.absent),
         ],
       },
-      { text: "Sessions", style: "h2", margin: [0, 16, 0, 6] },
-      { text: sessionList, fontSize: 9, color: "#334155" },
     ],
     styles: {
       brandTitle: { fontSize: 14, bold: true },
@@ -209,4 +207,14 @@ function statBlock(label: string, value: string | number) {
     ],
     margin: [0, 0, 12, 0],
   };
+}
+
+// Extract "MODULE – LECTURER" from a report name like
+// "BS-15 July 2026 - MBA RESEARCH PROJECT PROPOSAL - DR MSUTHWANA".
+function cleanSubtitle(name: string): string {
+  let s = name.replace(/\s+\d{1,2}:\d{2}\s*(?:to|-|–|—)\s*\d{1,2}:\d{2}\s*/gi, " ").trim();
+  const parts = s.split(/\s*[-–—]\s*/).map((p) => p.trim()).filter(Boolean);
+  const dateLike = /\b(?:\d{1,2}\s+)?(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{0,4}\b|\bbs[-\s]?\d/i;
+  const kept = parts.filter((p, i) => !(i === 0 && dateLike.test(p)));
+  return (kept.length ? kept : parts).join(" – ");
 }
