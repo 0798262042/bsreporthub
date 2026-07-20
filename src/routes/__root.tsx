@@ -16,6 +16,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 function NotFoundComponent() {
   return (
@@ -174,5 +175,12 @@ function AuthGate() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <div className="flex min-h-screen flex-col">
+      <div className="flex-1">
+        <Outlet />
+      </div>
+      <Footer />
+    </div>
+  );
 }
