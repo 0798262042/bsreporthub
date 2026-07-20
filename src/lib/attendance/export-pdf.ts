@@ -46,22 +46,48 @@ export async function exportReportPdf(
   const generated = new Date().toLocaleString();
   const subtitle = cleanSubtitle(reportName);
 
-  const header = ["Full Name"];
-  for (const s of sessions) {
-    header.push(`${s.label}\nJoin`);
-    header.push(`Leave`);
-  }
-  header.push("Present");
-  header.push("%");
+  // Two-row header matching the on-screen table:
+  // Row 1: Full Name (rowSpan 2) | Session N + date (colSpan 2) ... | Present (rowSpan 2) | Attendance (rowSpan 2)
+  // Row 2: '' | Join | Leave ... | '' | ''
+  const thTop = (text: string, extra: Record<string, unknown> = {}) => ({
+    text,
+    style: "thTop",
+    fillColor: "#1E3A8A",
+    color: "white",
+    alignment: "center",
+    margin: [0, 4, 0, 4],
+    border: [false, false, false, false],
+    ...extra,
+  });
+  const thSub = (text: string) => ({
+    text,
+    style: "thSub",
+    fillColor: "#2547A3",
+    color: "white",
+    alignment: "center",
+    margin: [0, 3, 0, 3],
+    border: [false, false, false, false],
+  });
 
-  const body: unknown[][] = [
-    header.map((h) => ({
-      text: h,
-      style: "th",
-      fillColor: "#1E3A8A",
-      color: "white",
-    })),
+  const row1: unknown[] = [
+    thTop("Full Name", { rowSpan: 2, alignment: "left", margin: [6, 10, 0, 10] }),
   ];
+  for (const s of sessions) {
+    row1.push(
+      thTop(`${s.label}\n${formatSessionDate(s.date)}`, { colSpan: 2 }),
+      "",
+    );
+  }
+  row1.push(thTop("Present", { rowSpan: 2, margin: [0, 10, 0, 10] }));
+  row1.push(thTop("Attendance", { rowSpan: 2, margin: [0, 10, 0, 10] }));
+
+  const row2: unknown[] = [""];
+  for (const _ of sessions) {
+    row2.push(thSub("Join"), thSub("Leave"));
+  }
+  row2.push("", "");
+
+  const body: unknown[][] = [row1, row2];
 
   students.forEach((row, i) => {
     const fill = i % 2 === 1 ? "#EFF6FF" : null;
@@ -104,8 +130,8 @@ export async function exportReportPdf(
   });
 
   const widths = [
-    120,
-    ...sessions.flatMap(() => ["auto", "auto"]),
+    130,
+    ...sessions.flatMap(() => ["auto", "auto"] as (number | string)[]),
     "auto",
     "auto",
   ];
@@ -113,7 +139,7 @@ export async function exportReportPdf(
   const dd = {
     pageOrientation: "landscape",
     pageSize: "A4",
-    pageMargins: [24, 96, 24, 40],
+    pageMargins: [24, 110, 24, 40],
     header: () => ({
       stack: [
         {
@@ -127,7 +153,7 @@ export async function exportReportPdf(
                   alignment: "center",
                   fillColor: "#1E3A8A",
                   color: "white",
-                  margin: [0, 10, 0, 10],
+                  margin: [0, 14, 0, 6],
                   border: [false, false, false, false],
                 },
               ],
@@ -138,14 +164,14 @@ export async function exportReportPdf(
                   alignment: "center",
                   fillColor: "#1E3A8A",
                   color: "white",
-                  margin: [0, 0, 0, 8],
+                  margin: [0, 0, 0, 14],
                   border: [false, false, false, false],
                 },
               ],
             ],
           },
           layout: "noBorders",
-          margin: [24, 12, 24, 0],
+          margin: [24, 14, 24, 0],
         },
       ],
     }),
@@ -172,8 +198,11 @@ export async function exportReportPdf(
         layout: {
           hLineColor: () => "#CBD5E1",
           vLineColor: () => "#CBD5E1",
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
+          hLineWidth: (i: number) => (i <= 2 ? 0 : 0.5),
+          vLineWidth: (i: number, node: { table: { widths: unknown[] } }) => {
+            if (i === 0 || i === node.table.widths.length) return 0;
+            return 0.5;
+          },
         },
       },
       { text: "Summary", style: "h2", margin: [0, 16, 0, 6] },
@@ -187,12 +216,13 @@ export async function exportReportPdf(
       },
     ],
     styles: {
-      brandTitle: { fontSize: 14, bold: true },
+      brandTitle: { fontSize: 15, bold: true },
       brandSub: { fontSize: 11, bold: true },
       title: { fontSize: 16, bold: true, color: "#0F172A", margin: [0, 0, 0, 4] },
       meta: { fontSize: 9, color: "#475569" },
       h2: { fontSize: 11, bold: true, color: "#1E3A8A" },
-      th: { bold: true, fontSize: 8, alignment: "center" },
+      thTop: { bold: true, fontSize: 9 },
+      thSub: { bold: true, fontSize: 8 },
       td: { fontSize: 8 },
     },
     defaultStyle: { fontSize: 8 },
@@ -228,12 +258,25 @@ function statBlock(label: string, value: string | number) {
   };
 }
 
+function formatSessionDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 // Extract "MODULE – LECTURER" from a report name like
 // "BS-15 July 2026 - MBA RESEARCH PROJECT PROPOSAL - DR MSUTHWANA".
 function cleanSubtitle(name: string): string {
   let s = name.replace(/\s+\d{1,2}:\d{2}\s*(?:to|-|–|—)\s*\d{1,2}:\d{2}\s*/gi, " ").trim();
   const parts = s.split(/\s*[-–—]\s*/).map((p) => p.trim()).filter(Boolean);
-  const dateLike = /\b(?:\d{1,2}\s+)?(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{0,4}\b|\bbs[-\s]?\d/i;
-  const kept = parts.filter((p, i) => !(i === 0 && dateLike.test(p)));
+  const dateLike = /\b(?:\d{1,2}\s+)?(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{0,4}\b/i;
+  const bsCode = /^bs[-\s]?\d*$/i;
+  const kept = parts.filter((p) => !dateLike.test(p) && !bsCode.test(p));
   return (kept.length ? kept : parts).join(" – ");
 }
