@@ -1,4 +1,5 @@
 import XLSX from "xlsx-js-style";
+import { saveAs } from "file-saver";
 import type { StoredSession, StudentRow } from "./types";
 import { formatTime, formatDate } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
@@ -206,5 +207,11 @@ export function exportReportExcel(
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Attendance");
   const filename = `${reportName.replace(/[^\w\-]+/g, "_")}_attendance.xlsx`;
-  XLSX.writeFile(wb, filename);
+  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+  saveAs(
+    new Blob([out], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    filename,
+  );
 }

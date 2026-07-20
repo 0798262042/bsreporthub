@@ -1,5 +1,6 @@
 import type { StoredSession, StudentRow } from "./types";
-import { formatDate, formatTime } from "./normalize";
+import { saveAs } from "file-saver";
+import { formatTime } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
 
 export async function exportReportPdf(
@@ -14,7 +15,10 @@ export async function exportReportPdf(
   const pm = pdfMake as unknown as {
     vfs: Record<string, string>;
     addVirtualFileSystem?: (vfs: Record<string, string>) => void;
-    createPdf: (dd: unknown) => { download: (n: string) => void };
+    createPdf: (dd: unknown) => {
+      download: (n: string) => void;
+      getBlob: (cb: (b: Blob) => void) => void;
+    };
   };
   const vfsMod = vfsFonts as unknown as {
     default?: { vfs?: Record<string, string> } | Record<string, string>;
@@ -102,10 +106,6 @@ export async function exportReportPdf(
     "auto",
     "auto",
   ];
-
-  const sessionList = sessions
-    .map((s) => `${s.label}: ${formatDate(s.date)}${s.topic ? ` — ${s.topic}` : ""}`)
-    .join("\n");
 
   const dd = {
     pageOrientation: "landscape",
@@ -196,7 +196,12 @@ export async function exportReportPdf(
   };
 
   const filename = `${reportName.replace(/[^\w\-]+/g, "_")}_attendance.pdf`;
-  pm.createPdf(dd).download(filename);
+  await new Promise<void>((resolve) => {
+    pm.createPdf(dd).getBlob((blob) => {
+      saveAs(blob, filename);
+      resolve();
+    });
+  });
 }
 
 function statBlock(label: string, value: string | number) {
