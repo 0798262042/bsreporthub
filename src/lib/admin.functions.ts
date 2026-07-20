@@ -186,14 +186,14 @@ export const updateUserDetails = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, string | null> = {};
     if (data.firstName !== undefined) patch.first_name = data.firstName;
     if (data.lastName !== undefined) patch.last_name = data.lastName;
     if (data.phone !== undefined) patch.phone = data.phone || null;
     if (data.department !== undefined) patch.department = data.department || null;
     const { error } = await supabaseAdmin
       .from("profiles")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -457,8 +457,7 @@ export const listActivityLogs = createServerFn({ method: "GET" })
         action: z.string().optional(),
         userId: z.string().uuid().optional(),
       })
-      .optional()
-      .default({}),
+      .parse(data ?? {}),
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
@@ -472,16 +471,18 @@ export const listActivityLogs = createServerFn({ method: "GET" })
     if (data?.userId) q = q.eq("user_id", data.userId);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Array<{
-      id: string;
-      user_id: string | null;
-      user_email: string | null;
-      user_name: string | null;
-      user_role: string | null;
-      action: string;
-      resource_type: string | null;
-      resource_id: string | null;
-      details: Record<string, unknown>;
-      created_at: string;
-    }>;
+    return (rows ?? []) as ActivityLogRow[];
   });
+
+export type ActivityLogRow = {
+  id: string;
+  user_id: string | null;
+  user_email: string | null;
+  user_name: string | null;
+  user_role: string | null;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  details: Record<string, string | number | boolean | null>;
+  created_at: string;
+};
