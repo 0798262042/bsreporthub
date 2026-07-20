@@ -338,6 +338,12 @@ function ReportPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       renameReport(id, reportNameDraft);
+                      void logActivity({
+                        action: "report.renamed",
+                        resourceType: "report",
+                        resourceId: id,
+                        details: { newName: reportNameDraft },
+                      });
                       setRenamingReport(false);
                     }
                     if (e.key === "Escape") setRenamingReport(false);
@@ -348,6 +354,12 @@ function ReportPage() {
                   variant="ghost"
                   onClick={() => {
                     renameReport(id, reportNameDraft);
+                    void logActivity({
+                      action: "report.renamed",
+                      resourceType: "report",
+                      resourceId: id,
+                      details: { newName: reportNameDraft },
+                    });
                     setRenamingReport(false);
                   }}
                 >
