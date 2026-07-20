@@ -38,12 +38,9 @@ function Index() {
               Turn Zoom attendance chaos into a{" "}
               <span className="bg-[image:var(--gradient-brand)] bg-clip-text text-transparent">
                 polished report
-              </span>{" "}
-              in seconds.
+              </span>
+              .
             </h1>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Crafted by Tumi for NMU Business School.
-            </p>
           </div>
         </section>
 
