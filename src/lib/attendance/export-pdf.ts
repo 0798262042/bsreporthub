@@ -19,7 +19,7 @@ export async function exportReportPdf(
     addVirtualFileSystem?: (vfs: Record<string, string>) => void;
     createPdf: (dd: unknown) => {
       download: (n: string) => void;
-      getBlob: (cb: (b: Blob) => void) => void;
+      getBlob: (cb?: (b: Blob) => void) => void | Promise<Blob>;
     };
   };
   const vfsMod = vfsFonts as unknown as {
@@ -197,11 +197,23 @@ export async function exportReportPdf(
     defaultStyle: { fontSize: 8 },
   };
 
-  await new Promise<void>((resolve) => {
-    pm.createPdf(dd).getBlob((blob) => {
+  await new Promise<void>((resolve, reject) => {
+    let completed = false;
+    const save = (blob: Blob) => {
+      if (completed) return;
+      completed = true;
       downloadBlob(blob, filename, downloadTab);
       resolve();
-    });
+    };
+
+    try {
+      const result = pm.createPdf(dd).getBlob(save);
+      if (result && typeof result.then === "function") {
+        result.then(save).catch(reject);
+      }
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
