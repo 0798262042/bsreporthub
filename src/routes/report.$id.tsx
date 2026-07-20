@@ -142,6 +142,7 @@ function ReportPage() {
   const [reportNameDraft, setReportNameDraft] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [showHidden, setShowHidden] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const hiddenSet = useMemo(
     () => new Set((report?.hiddenNames ?? []).map((n) => n.toLowerCase())),
@@ -320,6 +321,43 @@ function ReportPage() {
 
   const dateRangeLabel = reportDateRange(report.sessions);
 
+  const handleExportExcel = () => {
+    if (!combined || combined.students.length === 0) return;
+    try {
+      exportReportExcel(report.name, combined.sessions, combined.students);
+      void logActivity({
+        action: "report.exported_excel",
+        resourceType: "report",
+        resourceId: id,
+        details: { name: report.name },
+      });
+      toast.success("Excel export started.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not export Excel.");
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!combined || combined.students.length === 0 || exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      await exportReportPdf(report.name, combined.sessions, combined.students);
+      void logActivity({
+        action: "report.exported_pdf",
+        resourceType: "report",
+        resourceId: id,
+        details: { name: report.name },
+      });
+      toast.success("PDF export started.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not export PDF.");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[image:var(--gradient-soft)]">
       <BrandHeader />
@@ -409,32 +447,16 @@ function ReportPage() {
             <Button
               variant="outline"
               disabled={combined!.students.length === 0}
-              onClick={() => {
-                exportReportExcel(report.name, combined!.sessions, combined!.students);
-                void logActivity({
-                  action: "report.exported_excel",
-                  resourceType: "report",
-                  resourceId: id,
-                  details: { name: report.name },
-                });
-              }}
+              onClick={handleExportExcel}
             >
               <Download className="h-4 w-4 mr-1.5" /> Excel
             </Button>
             <Button
               className="bg-[image:var(--gradient-brand)] text-white shadow-[var(--shadow-card)]"
-              disabled={combined!.students.length === 0}
-              onClick={() => {
-                exportReportPdf(report.name, combined!.sessions, combined!.students);
-                void logActivity({
-                  action: "report.exported_pdf",
-                  resourceType: "report",
-                  resourceId: id,
-                  details: { name: report.name },
-                });
-              }}
+              disabled={combined!.students.length === 0 || exportingPdf}
+              onClick={handleExportPdf}
             >
-              <FileText className="h-4 w-4 mr-1.5" /> PDF
+              <FileText className="h-4 w-4 mr-1.5" /> {exportingPdf ? "Preparing…" : "PDF"}
             </Button>
           </div>
         </div>

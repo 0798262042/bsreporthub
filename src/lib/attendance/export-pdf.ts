@@ -1,5 +1,5 @@
 import type { StoredSession, StudentRow } from "./types";
-import { saveAs } from "file-saver";
+import { downloadBlob, openDownloadTab } from "../download";
 import { formatTime } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
 
@@ -8,6 +8,8 @@ export async function exportReportPdf(
   sessions: StoredSession[],
   students: StudentRow[],
 ) {
+  const filename = `${reportName.replace(/[^\w\-]+/g, "_")}_attendance.pdf`;
+  const downloadTab = openDownloadTab(filename);
   const [{ default: pdfMake }, vfsFonts] = await Promise.all([
     import("pdfmake/build/pdfmake"),
     import("pdfmake/build/vfs_fonts"),
@@ -17,7 +19,7 @@ export async function exportReportPdf(
     addVirtualFileSystem?: (vfs: Record<string, string>) => void;
     createPdf: (dd: unknown) => {
       download: (n: string) => void;
-      getBlob: (cb: (b: Blob) => void) => void;
+      getBlob: (cb?: (b: Blob) => void) => void | Promise<Blob>;
     };
   };
   const vfsMod = vfsFonts as unknown as {
@@ -195,12 +197,23 @@ export async function exportReportPdf(
     defaultStyle: { fontSize: 8 },
   };
 
-  const filename = `${reportName.replace(/[^\w\-]+/g, "_")}_attendance.pdf`;
-  await new Promise<void>((resolve) => {
-    pm.createPdf(dd).getBlob((blob) => {
-      saveAs(blob, filename);
+  await new Promise<void>((resolve, reject) => {
+    let completed = false;
+    const save = (blob: Blob) => {
+      if (completed) return;
+      completed = true;
+      downloadBlob(blob, filename, downloadTab);
       resolve();
-    });
+    };
+
+    try {
+      const result = pm.createPdf(dd).getBlob(save);
+      if (result && typeof result.then === "function") {
+        result.then(save).catch(reject);
+      }
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
