@@ -144,9 +144,10 @@ export function Landing() {
               </span>
             </p>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Transform attendance spreadsheets into professional reports within seconds. Upload Excel files,
-              automatically clean and organize attendance records, calculate percentages, and generate
-              downloadable PDF and Excel reports with ease.
+              Effortlessly transform attendance spreadsheets into accurate, professional reports. Simply
+              upload your Excel file and let Attendra automatically clean the data, merge duplicate records,
+              generate meaningful attendance insights, and produce beautifully formatted PDF and Excel
+              reports in seconds.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button
