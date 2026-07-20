@@ -107,7 +107,7 @@ function CategoryPage() {
         for (const s of parsed.sessions) stored.push(toStoredSession(s));
       }
       if (stored.length === 0) {
-        toast.error("No attendance data found.");
+        toast.error("Unable to import attendance.");
         return;
       }
       const match = sessionsMatchCategory(stored, category);
