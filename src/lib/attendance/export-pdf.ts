@@ -2,6 +2,7 @@ import type { StoredSession, StudentRow } from "./types";
 import { downloadBlob } from "../download";
 import { formatTime } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
+import { buildExportFilename } from "./filename";
 
 export async function exportReportPdf(
   reportName: string,
@@ -9,8 +10,7 @@ export async function exportReportPdf(
   students: StudentRow[],
   filenameBase?: string,
 ) {
-  const base = (filenameBase || reportName).replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "");
-  const filename = `${base || "attendance"}.pdf`;
+  const filename = buildExportFilename(filenameBase, reportName, "pdf");
   const [{ default: pdfMake }, vfsFonts] = await Promise.all([
     import("pdfmake/build/pdfmake"),
     import("pdfmake/build/vfs_fonts"),
