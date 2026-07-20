@@ -96,9 +96,24 @@ function prettyLecturer(topic: string): string {
 function prettyModule(topic: string): string {
   const t = (topic || "").trim();
   const parts = t.split(/\s*[–—]\s*|\s-\s/).map((p) => p.trim()).filter(Boolean);
-  if (parts.length >= 3) return parts.slice(1, -1).join(" — ");
-  if (parts.length === 2) return parts[0];
-  return t;
+  let mod: string;
+  if (parts.length >= 3) mod = parts.slice(1, -1).join(" — ");
+  else if (parts.length === 2) mod = parts[0];
+  else mod = t;
+  // Strip time ranges like "17:30-20:30" or "5:00 PM - 8:00 PM".
+  mod = mod
+    .replace(/\b\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*[-–—to]+\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[\s\-–—]+$/g, "")
+    .trim();
+  return mod;
+}
+
+function prettyModuleAndLecturer(topic: string): string {
+  const mod = prettyModule(topic);
+  const lec = prettyLecturer(topic);
+  if (mod && lec && mod.toLowerCase() !== lec.toLowerCase()) return `${mod} - ${lec}`;
+  return mod || lec || topic;
 }
 
 export const Route = createFileRoute("/report/$id")({
@@ -232,7 +247,7 @@ function ReportPage() {
             (s) => lecturerKey(s.topic) === expected,
           );
           toast.error(
-            `This attendance file belongs to ${prettyLecturer(mismatch.topic)} and cannot be uploaded into the ${existingSample ? prettyLecturer(existingSample.topic) : expected} report.`,
+            `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
           );
           return;
         }
@@ -254,7 +269,7 @@ function ReportPage() {
             (s) => moduleKey(s.topic) === expectedModule,
           );
           toast.error(
-            `This attendance file belongs to a different module (${prettyModule(mismatch.topic)}) and cannot be added to the ${existingSample ? prettyModule(existingSample.topic) : expectedModule} report.`,
+            `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
           );
           return;
         }
