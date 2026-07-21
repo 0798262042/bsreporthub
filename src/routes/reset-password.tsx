@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { AuthBackground, authCardClass } from "@/components/AuthBackground";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
@@ -51,15 +52,15 @@ function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[image:var(--gradient-soft)] flex items-center justify-center px-4 py-10">
+    <AuthBackground>
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[image:var(--gradient-brand)] text-white shadow-[var(--shadow-card)]">
             <GraduationCap className="h-5 w-5" />
           </div>
-          <p className="text-sm font-semibold text-foreground">Attendance Report Generator</p>
+          <p className="text-sm font-semibold text-white">Attendance Report Generator</p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+        <div className={authCardClass}>
           <h1 className="text-xl font-semibold text-foreground">Set a new password</h1>
           {!ready ? (
             <p className="mt-4 text-sm text-muted-foreground">
@@ -82,6 +83,6 @@ function ResetPasswordPage() {
           )}
         </div>
       </div>
-    </div>
+    </AuthBackground>
   );
 }
