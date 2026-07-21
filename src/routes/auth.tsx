@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { AuthBackground, authCardClass } from "@/components/AuthBackground";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -26,19 +27,19 @@ function AuthPage() {
   }, [session, loading, navigate]);
 
   return (
-    <div className="min-h-screen bg-[image:var(--gradient-soft)] flex items-center justify-center px-4 py-10">
+    <AuthBackground>
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[image:var(--gradient-brand)] text-white shadow-[var(--shadow-card)]">
             <GraduationCap className="h-5 w-5" />
           </div>
           <div className="leading-tight text-left">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">NMU Business School</p>
-            <p className="text-sm font-semibold text-foreground">Attendance Report Generator</p>
+            <p className="text-[10px] uppercase tracking-widest text-white/80">NMU Business School</p>
+            <p className="text-sm font-semibold text-white">Attendance Report Generator</p>
           </div>
         </Link>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+        <div className={authCardClass}>
           <Tabs defaultValue="signin">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign in</TabsTrigger>
@@ -52,11 +53,11 @@ function AuthPage() {
             </TabsContent>
           </Tabs>
         </div>
-        <p className="mt-6 text-center text-xs text-muted-foreground">
+        <p className="mt-6 text-center text-xs text-white/80">
           Crafted by Tumi for NMU Business School.
         </p>
       </div>
-    </div>
+    </AuthBackground>
   );
 }
 
