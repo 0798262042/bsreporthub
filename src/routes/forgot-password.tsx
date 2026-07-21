@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { AuthBackground, authCardClass } from "@/components/AuthBackground";
 
 export const Route = createFileRoute("/forgot-password")({
   component: ForgotPasswordPage,
@@ -32,15 +33,15 @@ function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[image:var(--gradient-soft)] flex items-center justify-center px-4 py-10">
+    <AuthBackground>
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[image:var(--gradient-brand)] text-white shadow-[var(--shadow-card)]">
             <GraduationCap className="h-5 w-5" />
           </div>
-          <p className="text-sm font-semibold text-foreground">Attendance Report Generator</p>
+          <p className="text-sm font-semibold text-white">Attendance Report Generator</p>
         </Link>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+        <div className={authCardClass}>
           <h1 className="text-xl font-semibold text-foreground">Reset your password</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Enter your account email and we'll send you a link to set a new password.
@@ -67,6 +68,6 @@ function ForgotPasswordPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AuthBackground>
   );
 }
