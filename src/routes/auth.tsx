@@ -53,9 +53,6 @@ function AuthPage() {
             </TabsContent>
           </Tabs>
         </div>
-        <p className="mt-6 text-center text-xs text-white/80">
-          Crafted by Tumi for NMU Business School.
-        </p>
       </div>
     </AuthBackground>
   );
