@@ -19,4 +19,4 @@ export function AuthBackground({ children }: { children: ReactNode }) {
 }
 
 export const authCardClass =
-  "rounded-2xl border border-white/20 bg-white/10 p-6 shadow-2xl backdrop-blur-xl supports-[backdrop-filter]:bg-white/10";
+  "rounded-2xl border border-white/40 bg-white/80 p-6 shadow-2xl backdrop-blur-xl supports-[backdrop-filter]:bg-white/70";
