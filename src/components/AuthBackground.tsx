@@ -19,4 +19,7 @@ export function AuthBackground({ children }: { children: ReactNode }) {
 }
 
 export const authCardClass =
-  "rounded-2xl border border-white/40 bg-white/80 p-6 shadow-2xl backdrop-blur-xl supports-[backdrop-filter]:bg-white/70";
+  "rounded-2xl border border-white/40 bg-white/80 p-6 shadow-2xl backdrop-blur-xl supports-[backdrop-filter]:bg-white/70 " +
+  "[&_label]:text-slate-800 [&_label]:font-medium " +
+  "[&_input]:bg-white [&_input]:text-slate-900 [&_input]:border [&_input]:border-slate-200 [&_input]:rounded-lg [&_input]:shadow-sm " +
+  "[&_input]:placeholder:text-slate-400 [&_input:focus-visible]:ring-2 [&_input:focus-visible]:ring-primary/40 [&_input:focus-visible]:border-primary/50";
