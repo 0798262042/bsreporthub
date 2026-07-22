@@ -33,6 +33,7 @@ import {
 import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { UploadDropzone } from "@/components/attendance/UploadDropzone";
 import { useReports } from "@/hooks/use-reports";
+import { useAuth } from "@/hooks/use-auth";
 import {
   createReport,
   addSessions,
@@ -79,6 +80,7 @@ function CategoryPage() {
   const { category: rawCategory } = Route.useParams();
   const navigate = useNavigate();
   const { reports } = useReports();
+  const { isAdmin } = useAuth();
 
   const category: Category = isCategory(rawCategory) ? rawCategory : "MBA";
   const label = CATEGORY_LABELS[category];
@@ -243,6 +245,7 @@ function CategoryPage() {
                           Updated {new Date(r.updatedAt).toLocaleString()}
                         </p>
                       </Link>
+                      {isAdmin && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -280,6 +283,7 @@ function CategoryPage() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                      )}
                     </div>
                     <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
