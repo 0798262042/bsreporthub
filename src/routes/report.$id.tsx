@@ -37,6 +37,7 @@ import {
 import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { UploadDropzone } from "@/components/attendance/UploadDropzone";
 import { useReport } from "@/hooks/use-reports";
+import { useAuth } from "@/hooks/use-auth";
 import {
   addSessions,
   removeSession,
