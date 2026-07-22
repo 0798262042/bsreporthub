@@ -135,6 +135,7 @@ function ReportPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { report } = useReport(id);
+  const { isAdmin } = useAuth();
 
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
@@ -533,6 +534,7 @@ function ReportPage() {
                       {formatDate(s.date)}
                     </p>
                   </div>
+                  {isAdmin && (
                   <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -564,6 +566,7 @@ function ReportPage() {
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
+                  )}
                 </div>
                 <div className="mt-3 text-xs text-muted-foreground line-clamp-2">
                   {s.topic}
