@@ -138,9 +138,8 @@ export function Landing() {
               Attendra
             </h1>
             <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              NMU Business School Attendance{" "}
               <span className="bg-[image:var(--gradient-brand)] bg-clip-text text-transparent">
-                Report Generator
+                Business School Attendance Report
               </span>
             </p>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
