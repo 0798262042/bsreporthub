@@ -328,7 +328,10 @@ function ReportPage() {
     try {
       const topic = report.sessions[0]?.topic ?? report.name;
       const filenameBase = prettyModuleAndLecturer(topic);
-      exportReportExcel(report.name, combined.sessions, combined.students, filenameBase);
+      exportReportExcel(report.name, combined.sessions, combined.students, filenameBase, {
+        module: prettyModule(topic),
+        lecturer: prettyLecturer(topic),
+      });
       void logActivity({
         action: "report.exported_excel",
         resourceType: "report",
