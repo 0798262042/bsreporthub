@@ -87,6 +87,7 @@ export function exportReportExcel(
   sessions: StoredSession[],
   students: StudentRow[],
   filenameBase?: string,
+  meta?: { module?: string; lecturer?: string },
 ) {
   const filename = buildExportFilename(filenameBase, reportName, "xlsx");
   const stats = computeStats(students, sessions.length);
@@ -100,6 +101,16 @@ export function exportReportExcel(
   const titleRow: Cell[] = [titleCell("NMU Business School — Attendance Report")];
   for (let i = 1; i < colCount; i++) titleRow.push({ t: "s", v: "", s: { fill: { fgColor: { rgb: BLUE } } } });
   aoa.push(titleRow);
+  // Module row (row 1) — styled to match the title
+  const moduleText = meta?.module ? `Module: ${meta.module}` : "";
+  const moduleRow: Cell[] = [titleCell(moduleText)];
+  for (let i = 1; i < colCount; i++) moduleRow.push({ t: "s", v: "", s: { fill: { fgColor: { rgb: BLUE } } } });
+  aoa.push(moduleRow);
+  // Lecturer row (row 2) — styled to match the title
+  const lecturerText = meta?.lecturer ? `Lecturer: ${meta.lecturer}` : "";
+  const lecturerRow: Cell[] = [titleCell(lecturerText)];
+  for (let i = 1; i < colCount; i++) lecturerRow.push({ t: "s", v: "", s: { fill: { fgColor: { rgb: BLUE } } } });
+  aoa.push(lecturerRow);
   // Subtitle row (report name / date range / generated)
   const subVals = [`Report: ${reportName}`, `Date Range: ${dateRange}`, `Generated: ${generated}`];
   const subRow: Cell[] = subVals.map((v) => subCell(v));
@@ -181,13 +192,15 @@ export function exportReportExcel(
   // Merges
   const merges: XLSX.Range[] = [
     { s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } }, // title
-    { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // name
-    { s: { r: 3, c: colCount - 2 }, e: { r: 4, c: colCount - 2 } }, // total
-    { s: { r: 3, c: colCount - 1 }, e: { r: 4, c: colCount - 1 } }, // pct
+    { s: { r: 1, c: 0 }, e: { r: 1, c: colCount - 1 } }, // module
+    { s: { r: 2, c: 0 }, e: { r: 2, c: colCount - 1 } }, // lecturer
+    { s: { r: 5, c: 0 }, e: { r: 6, c: 0 } }, // name
+    { s: { r: 5, c: colCount - 2 }, e: { r: 6, c: colCount - 2 } }, // total
+    { s: { r: 5, c: colCount - 1 }, e: { r: 6, c: colCount - 1 } }, // pct
   ];
   for (let i = 0; i < sessions.length; i++) {
     const c = 1 + i * 2;
-    merges.push({ s: { r: 3, c }, e: { r: 3, c: c + 1 } });
+    merges.push({ s: { r: 5, c }, e: { r: 5, c: c + 1 } });
   }
   ws["!merges"] = merges;
 
@@ -199,9 +212,9 @@ export function exportReportExcel(
     { wch: 16 },
   ];
   // Row heights
-  ws["!rows"] = [{ hpt: 28 }, { hpt: 18 }, {}, { hpt: 26 }, { hpt: 22 }];
+  ws["!rows"] = [{ hpt: 28 }, { hpt: 26 }, { hpt: 26 }, { hpt: 18 }, {}, { hpt: 26 }, { hpt: 22 }];
   // Freeze top rows
-  ws["!freeze"] = { xSplit: 1, ySplit: 5 };
+  ws["!freeze"] = { xSplit: 1, ySplit: 7 };
   (ws as XLSX.WorkSheet & { "!printSetup"?: unknown })["!printSetup"] = {
     orientation: "landscape",
     fitToPage: true,
