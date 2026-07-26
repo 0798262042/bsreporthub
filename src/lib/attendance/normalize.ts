@@ -113,21 +113,15 @@ export function stripDates(input: string): string {
     new RegExp(`\\b\\d{1,2}[-/. ]${MONTHS}[-/. ]\\d{2,4}\\b`, "gi"),
   ];
   for (const re of patterns) s = s.replace(re, " ");
-  // Collapse leftover separators: "BS- -MBA" -> "BS-MBA", " -  " -> " - "
+  // Collapse whitespace
   s = s.replace(/\s+/g, " ").trim();
-  // Fix dangling dashes/commas caused by the removal
-  s = s.replace(/([\-\u2013\u2014])\s*[\-\u2013\u2014]/g, "$1"); // "- -" -> "-"
+  // Fix dangling separators created by the removal:
+  //   "BS- -MBA"  -> "BS-MBA"
+  //   "BS -- MBA" -> "BS - MBA"
   s = s.replace(/([\-\u2013\u2014])\s+([\-\u2013\u2014])/g, "$1");
-  s = s.replace(/\s*([\-\u2013\u2014])\s*/g, "$1"); // trim spaces around dashes...
-  s = s.replace(/([A-Za-z0-9])-([A-Za-z0-9])/g, "$1-$2"); // keep compact
-  // Re-space around dashes that separate words (add single spaces back except after BS-)
-  s = s.replace(/-/g, "-");
-  // Remove leading/trailing junk separators
+  s = s.replace(/([\-\u2013\u2014])\s*([\-\u2013\u2014])/g, "$1");
+  // Trim leftover separators at edges
   s = s.replace(/^[\s\-\u2013\u2014,.:;]+/, "").replace(/[\s\-\u2013\u2014,.:;]+$/, "");
-  // Re-add readable spaces around dashes that separate word blocks (>=2 chars each side)
-  s = s.replace(/([A-Za-z0-9]{2,})-([A-Za-z][A-Za-z0-9])/g, "$1 - $2");
-  // But keep BS- prefix tight
-  s = s.replace(/^BS\s*-\s*/i, "BS-");
   return s.replace(/\s+/g, " ").trim();
 }
 
