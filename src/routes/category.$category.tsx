@@ -42,6 +42,7 @@ import {
 } from "@/lib/attendance/storage";
 import { parseAttendanceFile } from "@/lib/attendance/parse";
 import { toStoredSession, relabelSessions } from "@/lib/attendance/combine";
+import { stripDates } from "@/lib/attendance/normalize";
 import type { Category } from "@/lib/attendance/types";
 import { CATEGORIES, CATEGORY_LABELS, CATEGORY_TOKENS } from "@/lib/attendance/types";
 import { logActivity } from "@/lib/activity";
@@ -94,7 +95,7 @@ function CategoryPage() {
   const [busy, setBusy] = useState(false);
 
   const doCreate = async () => {
-    const r = await createReport(name || `New ${label} report`, category);
+    const r = await createReport(stripDates(name) || `New ${label} report`, category);
     setName("");
     setOpen(false);
     if (r) {
@@ -132,10 +133,18 @@ function CategoryPage() {
         navigate({ to: "/report/$id", params: { id: dup.report.id } });
         return;
       }
-      const report = await createReport(
-        files[0].name.replace(/\.(xlsx?|csv)$/i, "") || `New ${label} report`,
-        category,
+      // Derive a date-free report title from the filename (or topic fallback).
+      const rawTitle =
+        files[0].name.replace(/\.(xlsx?|csv)$/i, "") ||
+        stored[0]?.topic ||
+        `New ${label} report`;
+      const cleanedTitle = stripDates(rawTitle) || rawTitle;
+      // If a report with the same cleaned title + category already exists,
+      // append the new sessions to it instead of creating a duplicate category.
+      const existing = list.find(
+        (r) => r.name.trim().toLowerCase() === cleanedTitle.trim().toLowerCase(),
       );
+      const report = existing ?? (await createReport(cleanedTitle, category));
       if (!report) {
         toast.error("Could not create report.");
         return;
@@ -143,7 +152,7 @@ function CategoryPage() {
       const relabeled = relabelSessions(stored);
       await addSessions(report.id, relabeled);
       void logActivity({
-        action: "report.created",
+        action: existing ? "report.updated" : "report.created",
         resourceType: "report",
         resourceId: report.id,
         details: { name: report.name, category },
@@ -157,7 +166,11 @@ function CategoryPage() {
           sessions: relabeled.length,
         },
       });
-      toast.success(`Created ${label} report with ${relabeled.length} session(s).`);
+      toast.success(
+        existing
+          ? `Added ${relabeled.length} session(s) to "${report.name}".`
+          : `Created ${label} report with ${relabeled.length} session(s).`,
+      );
       navigate({ to: "/report/$id", params: { id: report.id } });
     } catch (e) {
       console.error(e);

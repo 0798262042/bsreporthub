@@ -89,6 +89,42 @@ export function nameKey(name: string): string {
   return normalizeName(name).toLowerCase().replace(/[^a-z]/g, "");
 }
 
+// ---------- Date stripping for report / category titles ----------
+// Removes date patterns like "23 May 2026", "23 May", "May 2026", "23/05/2026",
+// "2026-05-23", "23-May-2026" from a title while preserving the surrounding
+// text (e.g. "BS-23 May 2026-MBA LEADERSHIP" -> "BS-MBA LEADERSHIP").
+const MONTHS =
+  "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)";
+
+export function stripDates(input: string): string {
+  if (!input) return "";
+  let s = input;
+  // "23 May 2026" / "23rd May 2026" / "May 23 2026" / "May 2026" / "23 May"
+  const patterns: RegExp[] = [
+    new RegExp(`\\b\\d{1,2}(?:st|nd|rd|th)?\\s+${MONTHS}\\s+\\d{2,4}\\b`, "gi"),
+    new RegExp(`\\b${MONTHS}\\s+\\d{1,2}(?:st|nd|rd|th)?[,\\s]+\\d{2,4}\\b`, "gi"),
+    new RegExp(`\\b\\d{1,2}(?:st|nd|rd|th)?\\s+${MONTHS}\\b`, "gi"),
+    new RegExp(`\\b${MONTHS}\\s+\\d{2,4}\\b`, "gi"),
+    // 2026-05-23 / 2026/05/23
+    /\b\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\b/g,
+    // 23-05-2026 / 23/05/2026 / 23.05.2026
+    /\b\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\b/g,
+    // 23-May-2026
+    new RegExp(`\\b\\d{1,2}[-/. ]${MONTHS}[-/. ]\\d{2,4}\\b`, "gi"),
+  ];
+  for (const re of patterns) s = s.replace(re, " ");
+  // Collapse whitespace
+  s = s.replace(/\s+/g, " ").trim();
+  // Fix dangling separators created by the removal:
+  //   "BS- -MBA"  -> "BS-MBA"
+  //   "BS -- MBA" -> "BS - MBA"
+  s = s.replace(/([\-\u2013\u2014])\s+([\-\u2013\u2014])/g, "$1");
+  s = s.replace(/([\-\u2013\u2014])\s*([\-\u2013\u2014])/g, "$1");
+  // Trim leftover separators at edges
+  s = s.replace(/^[\s\-\u2013\u2014,.:;]+/, "").replace(/[\s\-\u2013\u2014,.:;]+$/, "");
+  return s.replace(/\s+/g, " ").trim();
+}
+
 // ---------- Fuzzy student matching ----------
 
 function nameTokens(name: string): string[] {

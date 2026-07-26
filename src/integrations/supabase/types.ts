@@ -201,6 +201,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _strip_dates: { Args: { t: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
