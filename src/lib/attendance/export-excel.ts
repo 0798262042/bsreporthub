@@ -25,7 +25,7 @@ function titleCell(v: string): Cell {
     s: {
       font: { bold: true, sz: 16, color: { rgb: WHITE } },
       fill: { fgColor: { rgb: BLUE } },
-      alignment: { horizontal: "center", vertical: "center" },
+      alignment: { horizontal: "center", vertical: "center", wrapText: true },
     },
   };
 }
@@ -210,7 +210,7 @@ export function exportReportExcel(
     { wch: 16 },
   ];
   // Row heights
-  ws["!rows"] = [{ hpt: 28 }, { hpt: 26 }, { hpt: 26 }, { hpt: 18 }, {}, { hpt: 26 }, { hpt: 22 }];
+  ws["!rows"] = [{ hpt: 28 }, { hpt: 34 }, { hpt: 26 }, { hpt: 18 }, {}, { hpt: 26 }, { hpt: 22 }];
   // Freeze top rows
   ws["!freeze"] = { xSplit: 1, ySplit: 7 };
   (ws as XLSX.WorkSheet & { "!printSetup"?: unknown })["!printSetup"] = {
