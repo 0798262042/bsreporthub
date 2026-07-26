@@ -102,13 +102,11 @@ export function exportReportExcel(
   for (let i = 1; i < colCount; i++) titleRow.push({ t: "s", v: "", s: { fill: { fgColor: { rgb: BLUE } } } });
   aoa.push(titleRow);
   // Module row (row 1) — styled to match the title
-  const moduleText = meta?.module ? `Module: ${meta.module}` : "";
-  const moduleRow: Cell[] = [titleCell(moduleText)];
+  const moduleRow: Cell[] = [titleCell(meta?.module ?? "")];
   for (let i = 1; i < colCount; i++) moduleRow.push({ t: "s", v: "", s: { fill: { fgColor: { rgb: BLUE } } } });
   aoa.push(moduleRow);
   // Lecturer row (row 2) — styled to match the title
-  const lecturerText = meta?.lecturer ? `Lecturer: ${meta.lecturer}` : "";
-  const lecturerRow: Cell[] = [titleCell(lecturerText)];
+  const lecturerRow: Cell[] = [titleCell(meta?.lecturer ?? "")];
   for (let i = 1; i < colCount; i++) lecturerRow.push({ t: "s", v: "", s: { fill: { fgColor: { rgb: BLUE } } } });
   aoa.push(lecturerRow);
   // Subtitle row (report name / date range / generated)
