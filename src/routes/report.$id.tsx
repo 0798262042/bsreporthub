@@ -37,6 +37,7 @@ import {
 import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { UploadDropzone } from "@/components/attendance/UploadDropzone";
 import { useReport } from "@/hooks/use-reports";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useAuth } from "@/hooks/use-auth";
 import {
   addSessions,
@@ -134,7 +135,7 @@ export const Route = createFileRoute("/report/$id")({
 function ReportPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { report } = useReport(id);
+  const { report, loading } = useReport(id);
   const { isAdmin } = useAuth();
 
   const [busy, setBusy] = useState(false);
@@ -202,6 +203,10 @@ function ReportPage() {
         (!q || s.name.toLowerCase().includes(q)) && s.attendancePct >= minPct,
     );
   }, [combined, search, minPct]);
+
+  if (loading) {
+    return <LoadingScreen message="Preparing your report..." />;
+  }
 
   if (!report) {
     return (
