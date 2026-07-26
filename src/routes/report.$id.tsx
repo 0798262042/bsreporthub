@@ -479,7 +479,6 @@ function ReportPage() {
             <StatCard label="Highest" value={`${stats.highest}%`} tone="success" />
             <StatCard label="Lowest" value={`${stats.lowest}%`} tone="warn" />
             <StatCard label="Perfect" value={stats.perfect} tone="success" />
-            <StatCard label="Absent" value={stats.absent} tone="danger" />
           </section>
         )}
 
