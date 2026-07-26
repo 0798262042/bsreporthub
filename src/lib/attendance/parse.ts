@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { normalizeName, nameKey } from "./normalize";
+import { normalizeName, nameKey, sameStudent, pickCanonicalName } from "./normalize";
 import type { AttendanceRow, SessionData } from "./types";
 
 // Parse Zoom-style datetimes like "07/06/2026 04:47:51 PM".
@@ -130,8 +130,10 @@ export async function parseAttendanceFile(file: File): Promise<ParsedFile> {
     const hostKey = hostName ? nameKey(hostName) : "";
     const hostEmailLc = hostEmail.toLowerCase();
 
-    // Merge per person (earliest join, latest leave)
-    const merged = new Map<string, AttendanceRow>();
+    // Merge per person (earliest join, latest leave) using fuzzy matching
+    // so that "Nomakhosi", "Nomakhosi Ntliziyo" and "Nomakhosi's iPhone"
+    // collapse into a single attendee.
+    const mergedList: AttendanceRow[] = [];
     for (let i = attIdx + 1; i < rows.length; i++) {
       const r = rows[i] as (string | number)[];
       if (!r || r.every((c) => c === "" || c == null)) continue;
@@ -150,13 +152,13 @@ export async function parseAttendanceFile(file: File): Promise<ParsedFile> {
       if (!join || !leave) continue;
       const normalized = normalizeName(rawName);
       if (!normalized) continue;
-      const key = nameKey(normalized);
-      const existing = merged.get(key);
+      const existing = mergedList.find((m) => sameStudent(m.name, normalized));
       if (existing) {
         if (join < existing.joinTime) existing.joinTime = join;
         if (leave > existing.leaveTime) existing.leaveTime = leave;
+        existing.name = pickCanonicalName(existing.name, normalized);
       } else {
-        merged.set(key, {
+        mergedList.push({
           name: normalized,
           rawName,
           joinTime: join,
@@ -165,7 +167,7 @@ export async function parseAttendanceFile(file: File): Promise<ParsedFile> {
       }
     }
 
-    if (merged.size === 0) {
+    if (mergedList.length === 0) {
       warnings.push(`Sheet "${sheetName}" had no attendee rows.`);
       continue;
     }
@@ -175,9 +177,9 @@ export async function parseAttendanceFile(file: File): Promise<ParsedFile> {
     if (startTime) {
       dateIso = startTime.slice(0, 10);
     } else {
-      const earliest = [...merged.values()].reduce(
+      const earliest = mergedList.reduce(
         (min, r) => (r.joinTime < min ? r.joinTime : min),
-        [...merged.values()][0].joinTime,
+        mergedList[0].joinTime,
       );
       dateIso = earliest.toISOString().slice(0, 10);
       startTime = earliest.toISOString();
@@ -192,7 +194,7 @@ export async function parseAttendanceFile(file: File): Promise<ParsedFile> {
       endTime,
       hostName,
       hostEmail,
-      attendees: [...merged.values()].sort((a, b) =>
+      attendees: mergedList.sort((a, b) =>
         a.name.localeCompare(b.name),
       ),
       sourceFilename: file.name,

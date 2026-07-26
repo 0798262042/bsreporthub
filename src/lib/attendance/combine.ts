@@ -1,5 +1,5 @@
 import type { Report, StoredSession, StudentRow } from "./types";
-import { nameKey } from "./normalize";
+import { sameStudent, pickCanonicalName } from "./normalize";
 
 export function toStoredSession(s: import("./types").SessionData): StoredSession {
   return {
@@ -20,13 +20,15 @@ export function combineReport(sessions: StoredSession[]): {
   const ordered = [...sessions]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((s, i) => ({ ...s, label: `Session ${i + 1}` }));
-  const map = new Map<string, StudentRow>();
-
+  // Fuzzy-cluster attendees across sessions so that "Nomakhosi",
+  // "Nomakhosi Ntliziyo" and "Nomakhosi's iPhone" collapse into a
+  // single student row with earliest join and latest leave.
+  const rows: StudentRow[] = [];
   for (const s of ordered) {
     for (const att of s.attendees) {
-      const key = nameKey(att.name);
-      if (!map.has(key)) {
-        map.set(key, {
+      let row = rows.find((r) => sameStudent(r.name, att.name));
+      if (!row) {
+        row = {
           name: att.name,
           perSession: ordered.map((os) => ({
             sessionId: os.id,
@@ -35,19 +37,23 @@ export function combineReport(sessions: StoredSession[]): {
           })),
           attended: 0,
           attendancePct: 0,
-        });
+        };
+        rows.push(row);
+      } else {
+        row.name = pickCanonicalName(row.name, att.name);
       }
-      const row = map.get(key)!;
       const slot = row.perSession.find((p) => p.sessionId === s.id);
       if (slot) {
-        slot.join = new Date(att.joinTime);
-        slot.leave = new Date(att.leaveTime);
+        const j = new Date(att.joinTime);
+        const l = new Date(att.leaveTime);
+        if (!slot.join || j < slot.join) slot.join = j;
+        if (!slot.leave || l > slot.leave) slot.leave = l;
       }
     }
   }
 
   const total = ordered.length || 1;
-  const students = [...map.values()]
+  const students = rows
     .map((r) => {
       r.attended = r.perSession.filter((p) => p.join !== null).length;
       r.attendancePct = Math.round((r.attended / total) * 1000) / 10;
