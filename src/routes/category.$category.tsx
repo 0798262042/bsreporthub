@@ -8,6 +8,8 @@ import {
   Trash2,
   Users,
   Plus,
+  Search,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,6 +95,16 @@ function CategoryPage() {
   const [name, setName] = useState("");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filteredList = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((r) => {
+      if (r.name.toLowerCase().includes(q)) return true;
+      return r.sessions.some((s) => (s.topic || "").toLowerCase().includes(q));
+    });
+  }, [list, query]);
 
   const doCreate = async () => {
     const r = await createReport(stripDates(name) || `New ${label} report`, category);
@@ -203,7 +215,28 @@ function CategoryPage() {
               {list.length} report{list.length === 1 ? "" : "s"} in this category.
             </p>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-3 sm:flex-nowrap">
+            <div className="relative w-full sm:max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by module or lecturer..."
+                className="pl-9 pr-9 rounded-full bg-card"
+                aria-label="Search reports"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-[image:var(--gradient-brand)] text-white">
                 <Plus className="mr-1 h-4 w-4" /> New {label} report
@@ -227,7 +260,8 @@ function CategoryPage() {
                 <Button onClick={doCreate}>Create</Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -238,9 +272,15 @@ function CategoryPage() {
                   No {label} reports yet. Drop a file on the right to get started.
                 </p>
               </div>
+            ) : filteredList.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card/60 p-12 text-center">
+                <p className="text-muted-foreground">
+                  No matching categories found. Try searching by module name or lecturer name.
+                </p>
+              </div>
             ) : (
               <ul className="grid gap-4 sm:grid-cols-2">
-                {list.map((r) => (
+                {filteredList.map((r) => (
                   <li
                     key={r.id}
                     className="group rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-shadow"
