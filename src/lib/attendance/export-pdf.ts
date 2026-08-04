@@ -69,7 +69,6 @@ export async function exportReportPdf(
   const pageWidth = Math.max(BASE_PAGE.w, tableWidth + sideMargin * 2);
   const page = { w: pageWidth, h: BASE_PAGE.h };
   const pageSize = { width: page.w, height: page.h };
-  const availWidth = page.w - sideMargin * 2;
   const availHeight = page.h - topMargin - bottomMargin;
   const blocks: StoredSession[][] = [sessions.length ? sessions : []];
 
