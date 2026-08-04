@@ -65,7 +65,12 @@ export async function exportReportPdf(
   const presentW = Math.max(34, fontSize * 5);
   const attendanceW = Math.max(46, fontSize * 7);
   const fixedW = nameColW + presentW + attendanceW;
-  const tableWidth = fixedW + sessionCount * timeColW * 2;
+  // pdfmake adds cell padding + border widths on top of the declared widths,
+  // so include them or the last columns fall off the page edge.
+  const cellPadX = 3;
+  const colCount = 3 + sessionCount * 2;
+  const tableWidth =
+    fixedW + sessionCount * timeColW * 2 + colCount * (cellPadX * 2 + 1) + 4;
   const pageWidth = Math.max(BASE_PAGE.w, tableWidth + sideMargin * 2);
   const page = { w: pageWidth, h: BASE_PAGE.h };
   const pageSize = { width: page.w, height: page.h };
@@ -102,6 +107,8 @@ export async function exportReportPdf(
     },
     paddingTop: () => 2,
     paddingBottom: () => 2,
+    paddingLeft: () => cellPadX,
+    paddingRight: () => cellPadX,
   };
 
   const buildBlock = (blockSessions: StoredSession[], blockIndex: number) => {
