@@ -314,13 +314,6 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
-function chunk<T>(arr: T[], size: number): T[][] {
-  if (arr.length === 0) return [[]];
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-
 function statBlock(label: string, value: string | number) {
   return {
     stack: [
