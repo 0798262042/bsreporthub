@@ -4,6 +4,11 @@ import { formatTime } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
 import { buildExportFilename } from "./filename";
 
+const PAGE_SIZES: Record<string, { w: number; h: number }> = {
+  A4: { w: 841.89, h: 595.28 }, // landscape
+  A3: { w: 1190.55, h: 841.89 }, // landscape
+};
+
 export async function exportReportPdf(
   reportName: string,
   sessions: StoredSession[],
@@ -46,9 +51,34 @@ export async function exportReportPdf(
   const generated = new Date().toLocaleString();
   const subtitle = cleanSubtitle(reportName);
 
-  // Two-row header matching the on-screen table:
-  // Row 1: Full Name (rowSpan 2) | Session N + date (colSpan 2) ... | Present (rowSpan 2) | Attendance (rowSpan 2)
-  // Row 2: '' | Join | Leave ... | '' | ''
+  // ---------------------------------------------------------------
+  // Dynamic layout maths — nothing about the page is hardcoded to a
+  // fixed number of sessions or students.
+  // ---------------------------------------------------------------
+  const sessionCount = Math.max(sessions.length, 1);
+  // Wider paper once the table clearly outgrows A4 landscape.
+  const pageSize = sessionCount > 12 ? "A3" : "A4";
+  const page = PAGE_SIZES[pageSize];
+  const sideMargin = 24;
+  const topMargin = 104;
+  const bottomMargin = 40;
+  const availWidth = page.w - sideMargin * 2;
+  const availHeight = page.h - topMargin - bottomMargin;
+
+  // Shrink type gradually (never below readable 6pt) as columns grow.
+  const fontSize = clamp(9 - Math.floor((sessionCount - 6) / 6), 6, 9);
+  const timeColW = Math.max(30, Math.round(fontSize * 4.6));
+  const nameColW = clamp(Math.round(availWidth * 0.16), 96, 150);
+  const presentW = Math.max(34, fontSize * 5);
+  const attendanceW = Math.max(46, fontSize * 7);
+  const fixedW = nameColW + presentW + attendanceW;
+  const perSession = timeColW * 2;
+  const sessionsPerBlock = Math.max(
+    1,
+    Math.floor((availWidth - fixedW) / perSession),
+  );
+  const blocks = chunk(sessions, sessionsPerBlock);
+
   const thTop = (text: string, extra: Record<string, unknown> = {}) => ({
     text,
     style: "thTop",
@@ -69,77 +99,148 @@ export async function exportReportPdf(
     border: [false, false, false, false],
   });
 
-  const row1: unknown[] = [
-    thTop("Full Name", { rowSpan: 2, alignment: "left", margin: [6, 10, 0, 10] }),
-  ];
-  for (const s of sessions) {
-    row1.push(
-      thTop(`${s.label}\n${formatSessionDate(s.date)}`, { colSpan: 2 }),
-      "",
-    );
-  }
-  row1.push(thTop("Present", { rowSpan: 2, margin: [0, 10, 0, 10] }));
-  row1.push(thTop("Attendance", { rowSpan: 2, margin: [0, 10, 0, 10] }));
+  const tableLayout = {
+    hLineColor: () => "#CBD5E1",
+    vLineColor: () => "#CBD5E1",
+    hLineWidth: (i: number) => (i <= 2 ? 0 : 0.5),
+    vLineWidth: (i: number, node: { table: { widths: unknown[] } }) => {
+      if (i === 0 || i === node.table.widths.length) return 0;
+      return 0.5;
+    },
+    paddingTop: () => 2,
+    paddingBottom: () => 2,
+  };
 
-  const row2: unknown[] = [""];
-  for (const _ of sessions) {
-    row2.push(thSub("Join"), thSub("Leave"));
-  }
-  row2.push("", "");
+  const buildBlock = (blockSessions: StoredSession[], blockIndex: number) => {
+    const row1: unknown[] = [
+      thTop("Full Name", {
+        rowSpan: 2,
+        alignment: "left",
+        margin: [6, 10, 0, 10],
+      }),
+    ];
+    for (const s of blockSessions) {
+      row1.push(thTop(`${s.label}\n${formatSessionDate(s.date)}`, { colSpan: 2 }), "");
+    }
+    row1.push(thTop("Present", { rowSpan: 2, margin: [0, 10, 0, 10] }));
+    row1.push(thTop("Attendance", { rowSpan: 2, margin: [0, 10, 0, 10] }));
 
-  const body: unknown[][] = [row1, row2];
+    const row2: unknown[] = [""];
+    for (let i = 0; i < blockSessions.length; i++) {
+      row2.push(thSub("Join"), thSub("Leave"));
+    }
+    row2.push("", "");
 
-  students.forEach((row, i) => {
-    const fill = i % 2 === 1 ? "#EFF6FF" : null;
-    const line: unknown[] = [{ text: row.name, fillColor: fill, style: "td" }];
-    for (const p of row.perSession) {
+    const body: unknown[][] = [row1, row2];
+    const ids = blockSessions.map((s) => s.id);
+
+    students.forEach((row, i) => {
+      const fill = i % 2 === 1 ? "#EFF6FF" : null;
+      const line: unknown[] = [{ text: row.name, fillColor: fill, style: "td" }];
+      for (const id of ids) {
+        const p = row.perSession.find((x) => x.sessionId === id);
+        line.push({
+          text: p?.join ? formatTime(p.join) : "—",
+          fillColor: fill,
+          style: "td",
+          alignment: "center",
+        });
+        line.push({
+          text: p?.leave ? formatTime(p.leave) : "—",
+          fillColor: fill,
+          style: "td",
+          alignment: "center",
+        });
+      }
       line.push({
-        text: p.join ? formatTime(p.join) : "—",
+        text: String(row.attended),
         fillColor: fill,
         style: "td",
         alignment: "center",
       });
+      const pctColor =
+        row.attendancePct >= 80
+          ? "#16A34A"
+          : row.attendancePct >= 50
+            ? "#CA8A04"
+            : "#DC2626";
       line.push({
-        text: p.leave ? formatTime(p.leave) : "—",
+        text: `${row.attendancePct}%`,
         fillColor: fill,
+        color: pctColor,
+        bold: true,
         style: "td",
         alignment: "center",
+      });
+      body.push(line);
+    });
+
+    const widths: (number | string)[] = [
+      nameColW,
+      ...blockSessions.flatMap(() => [timeColW, timeColW]),
+      presentW,
+      attendanceW,
+    ];
+
+    const parts: unknown[] = [];
+    if (blocks.length > 1) {
+      const first = blockSessions[0]?.label ?? "";
+      const last = blockSessions[blockSessions.length - 1]?.label ?? first;
+      parts.push({
+        text: first === last ? first : `${first} – ${last}`,
+        style: "h2",
+        margin: [0, blockIndex === 0 ? 0 : 4, 0, 6],
+        pageBreak: blockIndex === 0 ? undefined : "before",
       });
     }
-    line.push({
-      text: String(row.attended),
-      fillColor: fill,
-      style: "td",
-      alignment: "center",
+    parts.push({
+      table: { headerRows: 2, dontBreakRows: true, widths, body },
+      layout: tableLayout,
     });
-    const pctColor =
-      row.attendancePct >= 80
-        ? "#16A34A"
-        : row.attendancePct >= 50
-          ? "#CA8A04"
-          : "#DC2626";
-    line.push({
-      text: `${row.attendancePct}%`,
-      fillColor: fill,
-      color: pctColor,
-      bold: true,
-      style: "td",
-      alignment: "center",
-    });
-    body.push(line);
-  });
+    return parts;
+  };
 
-  const widths = [
-    130,
-    ...sessions.flatMap(() => ["auto", "auto"] as (number | string)[]),
-    "auto",
-    "auto",
-  ];
+  // Estimated height so small reports can be vertically centred instead of
+  // hugging the top of the page.
+  const rowHeight = fontSize + 6;
+  const headerHeight = (fontSize + 8) * 3;
+  const summaryHeight = 64;
+  const metaHeight = 24;
+  const estimated =
+    metaHeight + headerHeight + students.length * rowHeight + summaryHeight;
+  const singlePage = blocks.length === 1 && estimated < availHeight;
+  const topPad = singlePage
+    ? Math.max(0, Math.round((availHeight - estimated) / 2))
+    : 0;
+
+  const content: unknown[] = [];
+  if (topPad > 0) content.push({ text: "", margin: [0, topPad / 2, 0, 0] });
+  content.push({
+    text: `Date Range: ${dateRange}    •    Total Students: ${stats.totalStudents}    •    Total Sessions: ${stats.totalSessions}    •    Generated: ${generated}`,
+    style: "meta",
+    alignment: "center",
+    margin: [0, 0, 0, 12],
+  });
+  blocks.forEach((b, i) => content.push(...buildBlock(b, i)));
+  content.push({
+    unbreakable: true,
+    stack: [
+      { text: "Summary", style: "h2", margin: [0, 16, 0, 6] },
+      {
+        columns: [
+          statBlock("Average Attendance", `${stats.avg}%`),
+          statBlock("Highest", `${stats.highest}%`),
+          statBlock("Lowest", `${stats.lowest}%`),
+          statBlock("Perfect", stats.perfect),
+        ],
+      },
+    ],
+  });
 
   const dd = {
     pageOrientation: "landscape",
-    pageSize: "A4",
-    pageMargins: [24, 110, 24, 40],
+    pageSize,
+    pageMargins: [sideMargin, topMargin, sideMargin, bottomMargin],
     header: () => ({
       stack: [
         {
@@ -171,7 +272,7 @@ export async function exportReportPdf(
             ],
           },
           layout: "noBorders",
-          margin: [24, 14, 24, 0],
+          margin: [sideMargin, 14, sideMargin, 0],
         },
       ],
     }),
@@ -182,50 +283,18 @@ export async function exportReportPdf(
       fontSize: 8,
       color: "#64748B",
     }),
-    content: [
-      {
-        text: `Date Range: ${dateRange}    •    Total Students: ${stats.totalStudents}    •    Total Sessions: ${stats.totalSessions}    •    Generated: ${generated}`,
-        style: "meta",
-        alignment: "center",
-        margin: [0, 0, 0, 12],
-      },
-      {
-        table: {
-          headerRows: 1,
-          widths,
-          body,
-        },
-        layout: {
-          hLineColor: () => "#CBD5E1",
-          vLineColor: () => "#CBD5E1",
-          hLineWidth: (i: number) => (i <= 2 ? 0 : 0.5),
-          vLineWidth: (i: number, node: { table: { widths: unknown[] } }) => {
-            if (i === 0 || i === node.table.widths.length) return 0;
-            return 0.5;
-          },
-        },
-      },
-      { text: "Summary", style: "h2", margin: [0, 16, 0, 6] },
-      {
-        columns: [
-          statBlock("Average Attendance", `${stats.avg}%`),
-          statBlock("Highest", `${stats.highest}%`),
-          statBlock("Lowest", `${stats.lowest}%`),
-          statBlock("Perfect", stats.perfect),
-        ],
-      },
-    ],
+    content,
     styles: {
       brandTitle: { fontSize: 15, bold: true },
       brandSub: { fontSize: 11, bold: true },
       title: { fontSize: 16, bold: true, color: "#0F172A", margin: [0, 0, 0, 4] },
       meta: { fontSize: 9, color: "#475569" },
       h2: { fontSize: 11, bold: true, color: "#1E3A8A" },
-      thTop: { bold: true, fontSize: 9 },
-      thSub: { bold: true, fontSize: 8 },
-      td: { fontSize: 8 },
+      thTop: { bold: true, fontSize: Math.max(fontSize, 7) },
+      thSub: { bold: true, fontSize: Math.max(fontSize - 1, 6) },
+      td: { fontSize },
     },
-    defaultStyle: { fontSize: 8 },
+    defaultStyle: { fontSize },
   };
 
   await new Promise<void>((resolve, reject) => {
@@ -246,6 +315,17 @@ export async function exportReportPdf(
       reject(e);
     }
   });
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  if (arr.length === 0) return [[]];
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }
 
 function statBlock(label: string, value: string | number) {
