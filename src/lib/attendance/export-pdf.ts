@@ -4,10 +4,7 @@ import { formatTime } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
 import { buildExportFilename } from "./filename";
 
-const PAGE_SIZES: Record<string, { w: number; h: number }> = {
-  A4: { w: 841.89, h: 595.28 }, // landscape
-  A3: { w: 1190.55, h: 841.89 }, // landscape
-};
+const BASE_PAGE = { w: 841.89, h: 595.28 }; // A4 landscape
 
 export async function exportReportPdf(
   reportName: string,
