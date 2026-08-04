@@ -53,28 +53,25 @@ export async function exportReportPdf(
   // fixed number of sessions or students.
   // ---------------------------------------------------------------
   const sessionCount = Math.max(sessions.length, 1);
-  // Wider paper once the table clearly outgrows A4 landscape.
-  const pageSize = sessionCount > 12 ? "A3" : "A4";
-  const page = PAGE_SIZES[pageSize];
   const sideMargin = 24;
   const topMargin = 104;
   const bottomMargin = 40;
-  const availWidth = page.w - sideMargin * 2;
-  const availHeight = page.h - topMargin - bottomMargin;
 
-  // Shrink type gradually (never below readable 6pt) as columns grow.
-  const fontSize = clamp(9 - Math.floor((sessionCount - 6) / 6), 6, 9);
+  // Every session and the attendance % must sit on ONE row, so the paper
+  // grows horizontally instead of splitting the table across pages.
+  const fontSize = clamp(9 - Math.floor((sessionCount - 8) / 8), 6, 9);
   const timeColW = Math.max(30, Math.round(fontSize * 4.6));
-  const nameColW = clamp(Math.round(availWidth * 0.16), 96, 150);
+  const nameColW = clamp(Math.round(fontSize * 13), 96, 140);
   const presentW = Math.max(34, fontSize * 5);
   const attendanceW = Math.max(46, fontSize * 7);
   const fixedW = nameColW + presentW + attendanceW;
-  const perSession = timeColW * 2;
-  const sessionsPerBlock = Math.max(
-    1,
-    Math.floor((availWidth - fixedW) / perSession),
-  );
-  const blocks = chunk(sessions, sessionsPerBlock);
+  const tableWidth = fixedW + sessionCount * timeColW * 2;
+  const pageWidth = Math.max(BASE_PAGE.w, tableWidth + sideMargin * 2);
+  const page = { w: pageWidth, h: BASE_PAGE.h };
+  const pageSize = { width: page.w, height: page.h };
+  const availWidth = page.w - sideMargin * 2;
+  const availHeight = page.h - topMargin - bottomMargin;
+  const blocks: StoredSession[][] = [sessions.length ? sessions : []];
 
   const thTop = (text: string, extra: Record<string, unknown> = {}) => ({
     text,
