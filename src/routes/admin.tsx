@@ -36,12 +36,19 @@ import {
   ScrollText,
   CheckCircle2,
   Filter,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/hooks/use-auth";
 import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { CATEGORY_LABELS, type Category } from "@/lib/attendance/types";
+import { usePrograms, notifyProgramsChanged } from "@/hooks/use-programs";
+import {
+  createProgram,
+  updateProgram,
+  deleteProgram,
+} from "@/lib/programs.functions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -112,9 +119,9 @@ type UserRow = Awaited<ReturnType<typeof listAllUsers>>[number];
 function AdminDashboard() {
   const { isAdmin, loading, session } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"overview" | "users" | "activity" | "logs">(
-    "overview",
-  );
+  const [tab, setTab] = useState<
+    "overview" | "users" | "programmes" | "activity" | "logs"
+  >("overview");
 
   useEffect(() => {
     if (loading) return;
@@ -163,6 +170,9 @@ function AdminDashboard() {
             <TabsTrigger value="users">
               <UserCog className="h-4 w-4 mr-2" /> User management
             </TabsTrigger>
+            <TabsTrigger value="programmes">
+              <GraduationCap className="h-4 w-4 mr-2" /> Programmes
+            </TabsTrigger>
             <TabsTrigger value="activity">
               <Activity className="h-4 w-4 mr-2" /> Recent activity
             </TabsTrigger>
@@ -176,6 +186,9 @@ function AdminDashboard() {
           </TabsContent>
           <TabsContent value="users" className="mt-6">
             <UserManagement />
+          </TabsContent>
+          <TabsContent value="programmes" className="mt-6">
+            <ProgrammesTab />
           </TabsContent>
           <TabsContent value="activity" className="mt-6">
             <RecentActivity />
