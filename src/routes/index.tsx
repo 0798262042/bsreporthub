@@ -3,7 +3,7 @@ import { ArrowRight, Sparkles, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandHeader } from "@/components/attendance/BrandHeader";
 import { useReports } from "@/hooks/use-reports";
-import { CATEGORIES, CATEGORY_LABELS, type Category } from "@/lib/attendance/types";
+import { usePrograms } from "@/hooks/use-programs";
 import { useAuth } from "@/hooks/use-auth";
 import { Landing } from "@/components/Landing";
 
@@ -15,17 +15,11 @@ function Index() {
   const { session } = useAuth();
   const navigate = useNavigate();
   const { reports } = useReports();
+  const { programs } = usePrograms();
   if (!session) return <Landing />;
 
-  const counts: Record<Category, number> = { MBA: 0, PDBA: 0, MMM: 0, MBA_PDBA: 0 };
+  const counts: Record<string, number> = {};
   for (const r of reports) counts[r.category] = (counts[r.category] ?? 0) + 1;
-
-  const meta: Record<Category, { blurb: string }> = {
-    MBA: { blurb: "Master of Business Administration attendance reports." },
-    PDBA: { blurb: "Postgraduate Diploma in Business Admin attendance reports." },
-    MMM: { blurb: "Master of Management (MMM) attendance reports." },
-    MBA_PDBA: { blurb: "Combined MBA & PDBA sessions in a single report." },
-  };
 
   return (
     <div className="min-h-screen bg-[image:var(--gradient-soft)]">
