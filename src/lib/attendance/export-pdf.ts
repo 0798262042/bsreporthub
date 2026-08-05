@@ -71,7 +71,10 @@ export async function exportReportPdf(
   const colCount = 3 + sessionCount * 2;
   const tableWidth =
     fixedW + sessionCount * timeColW * 2 + colCount * (cellPadX * 2 + 1) + 4;
-  const pageWidth = Math.max(BASE_PAGE.w, tableWidth + sideMargin * 2);
+  // Shrink the paper to the table for small reports so there is no dead space
+  // on the right, and grow it for large ones so nothing is clipped.
+  const minWidth = 420;
+  const pageWidth = Math.max(minWidth, tableWidth + sideMargin * 2);
   const page = { w: pageWidth, h: BASE_PAGE.h };
   const pageSize = { width: page.w, height: page.h };
   const availHeight = page.h - topMargin - bottomMargin;
@@ -238,7 +241,6 @@ export async function exportReportPdf(
   });
 
   const dd = {
-    pageOrientation: "landscape",
     pageSize,
     pageMargins: [sideMargin, topMargin, sideMargin, bottomMargin],
     header: () => ({
