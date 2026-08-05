@@ -241,7 +241,6 @@ export async function exportReportPdf(
   });
 
   const dd = {
-    pageOrientation: "landscape",
     pageSize,
     pageMargins: [sideMargin, topMargin, sideMargin, bottomMargin],
     header: () => ({
