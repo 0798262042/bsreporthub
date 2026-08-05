@@ -136,7 +136,7 @@ function CategoryPage() {
         toast.error("Unable to import attendance.");
         return;
       }
-      const match = sessionsMatchCategory(stored, category);
+      const match = sessionsMatchCategory(stored, tokens, otherTokens);
       if (!match.ok) {
         toast.error(`Not a ${label} file. Topic: "${match.badTopic}".`);
         return;
@@ -369,7 +369,7 @@ function CategoryPage() {
             <UploadDropzone onFiles={handleUpload} busy={busy} />
             <p className="mt-3 text-xs text-muted-foreground text-center">
               Only {label} sessions accepted here. Topic must contain
-              "{CATEGORY_TOKENS[category].join(" + ")}".
+              "{tokens.join(" + ")}".
             </p>
           </div>
         </div>
