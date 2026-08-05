@@ -53,11 +53,11 @@ function Index() {
           </div>
 
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
-            {CATEGORIES.map((c) => (
-              <li key={c} className="h-full">
+            {programs.map((p) => (
+              <li key={p.code} className="h-full">
                 <button
                   onClick={() =>
-                    navigate({ to: "/category/$category", params: { category: c } })
+                    navigate({ to: "/category/$category", params: { category: p.code } })
                   }
                   className="w-full h-full min-h-[220px] flex flex-col text-left rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-all hover:-translate-y-0.5"
                 >
@@ -66,17 +66,17 @@ function Index() {
                       <GraduationCap className="h-5 w-5" />
                     </div>
                     <span className="text-xs font-semibold text-muted-foreground">
-                      {counts[c]} report{counts[c] === 1 ? "" : "s"}
+                      {counts[p.code] ?? 0} report{(counts[p.code] ?? 0) === 1 ? "" : "s"}
                     </span>
                   </div>
                   <p className="mt-4 text-2xl font-bold tracking-tight text-foreground">
-                    {CATEGORY_LABELS[c]}
+                    {p.label}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                    {meta[c].blurb}
+                    {p.blurb || `${p.label} attendance reports.`}
                   </p>
                   <span className="mt-auto pt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    Open {CATEGORY_LABELS[c]} reports <ArrowRight className="h-3.5 w-3.5" />
+                    Open {p.label} reports <ArrowRight className="h-3.5 w-3.5" />
                   </span>
                 </button>
               </li>
