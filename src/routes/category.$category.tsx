@@ -46,32 +46,28 @@ import { parseAttendanceFile } from "@/lib/attendance/parse";
 import { toStoredSession, relabelSessions } from "@/lib/attendance/combine";
 import { stripDates } from "@/lib/attendance/normalize";
 import type { Category } from "@/lib/attendance/types";
-import { CATEGORIES, CATEGORY_LABELS, CATEGORY_TOKENS } from "@/lib/attendance/types";
+import { usePrograms } from "@/hooks/use-programs";
 import { logActivity } from "@/lib/activity";
 
 export const Route = createFileRoute("/category/$category")({
   component: CategoryPage,
 });
 
-function isCategory(c: string): c is Category {
-  return (CATEGORIES as string[]).includes(c);
-}
-
 // Validate that every session in an upload matches the target category by topic.
-// - MBA / PDBA / MMM: topic must contain that token AND none of the other two.
-// - MBA_PDBA: topic must contain BOTH "MBA" and "PDBA".
+// The topic must contain every token of this programme, and none of the tokens
+// that belong only to other programmes.
 function sessionsMatchCategory(
   stored: { topic: string }[],
-  category: Category,
+  required: string[],
+  otherTokens: string[],
 ): { ok: boolean; badTopic?: string } {
-  const required = CATEGORY_TOKENS[category];
-  const forbidden =
-    category === "MBA_PDBA"
-      ? (["MMM"] as const)
-      : (["MBA", "PDBA", "MMM"] as const).filter((t) => !required.includes(t));
+  const req = required.map((t) => t.toUpperCase());
+  const forbidden = otherTokens
+    .map((t) => t.toUpperCase())
+    .filter((t) => !req.includes(t));
   for (const s of stored) {
     const topic = (s.topic || "").toUpperCase();
-    if (!required.every((t) => topic.includes(t)))
+    if (!req.every((t) => topic.includes(t)))
       return { ok: false, badTopic: s.topic };
     if (forbidden.some((t) => topic.includes(t)))
       return { ok: false, badTopic: s.topic };
@@ -84,9 +80,15 @@ function CategoryPage() {
   const navigate = useNavigate();
   const { reports } = useReports();
   const { isAdmin } = useAuth();
+  const { programs } = usePrograms();
 
-  const category: Category = isCategory(rawCategory) ? rawCategory : "MBA";
-  const label = CATEGORY_LABELS[category];
+  const category: Category = rawCategory;
+  const program = programs.find((p) => p.code === category);
+  const label = program?.label ?? category;
+  const tokens = program?.tokens?.length ? program.tokens : [category];
+  const otherTokens = programs
+    .filter((p) => p.code !== category)
+    .flatMap((p) => p.tokens);
   const list = useMemo(
     () => reports.filter((r) => r.category === category),
     [reports, category],
