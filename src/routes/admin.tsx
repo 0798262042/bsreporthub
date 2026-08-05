@@ -1039,3 +1039,294 @@ function ActivityLogs() {
     </div>
   );
 }
+// ---------------------------------------------------------------------------
+// Programmes
+// ---------------------------------------------------------------------------
+
+function ProgrammesTab() {
+  const { programs, refresh } = usePrograms();
+  const create = useServerFn(createProgram);
+  const update = useServerFn(updateProgram);
+  const remove = useServerFn(deleteProgram);
+
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [label, setLabel] = useState("");
+  const [blurb, setBlurb] = useState("");
+  const [tokens, setTokens] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [editBlurb, setEditBlurb] = useState("");
+  const [editTokens, setEditTokens] = useState("");
+
+  const reload = async () => {
+    await refresh();
+    notifyProgramsChanged();
+  };
+
+  const parseTokens = (s: string) =>
+    s
+      .split(",")
+      .map((t) => t.trim().toUpperCase())
+      .filter(Boolean);
+
+  const submit = async () => {
+    const list = parseTokens(tokens || code);
+    if (!code.trim() || !label.trim() || list.length === 0) {
+      toast.error("Code, name and at least one keyword are required.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await create({
+        data: {
+          code: code.trim().toUpperCase().replace(/[^A-Z0-9_]+/g, "_"),
+          label: label.trim(),
+          blurb: blurb.trim(),
+          tokens: list,
+        },
+      });
+      toast.success(`Programme "${label.trim()}" added.`);
+      setCode("");
+      setLabel("");
+      setBlurb("");
+      setTokens("");
+      setOpen(false);
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not add programme.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editId) return;
+    setBusy(true);
+    try {
+      await update({
+        data: {
+          id: editId,
+          label: editLabel.trim(),
+          blurb: editBlurb.trim(),
+          tokens: parseTokens(editTokens),
+        },
+      });
+      toast.success("Programme updated.");
+      setEditId(null);
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update programme.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doDelete = async (id: string) => {
+    try {
+      await remove({ data: { id } });
+      toast.success("Programme removed.");
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not remove programme.");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Programmes</h2>
+          <p className="text-sm text-muted-foreground">
+            These become the cards under “Recent reports”. Keywords must appear in the
+            Zoom topic for a file to be accepted in that programme.
+          </p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Add programme
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add programme</DialogTitle>
+              <DialogDescription>
+                Create a new programme card, e.g. “MPhil” or “MBA &amp; MMM”.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="p-label">Display name</Label>
+                <Input
+                  id="p-label"
+                  value={label}
+                  onChange={(e) => {
+                    setLabel(e.target.value);
+                    if (!code) return;
+                  }}
+                  placeholder="MPhil"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-code">Code</Label>
+                <Input
+                  id="p-code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  placeholder="MPHIL"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Capital letters, numbers and underscores. Used in the page address.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-tokens">Required keywords</Label>
+                <Input
+                  id="p-tokens"
+                  value={tokens}
+                  onChange={(e) => setTokens(e.target.value)}
+                  placeholder="MPHIL   (or: MBA, MMM)"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Comma-separated. Every keyword must appear in the file topic.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-blurb">Short description</Label>
+                <Input
+                  id="p-blurb"
+                  value={blurb}
+                  onChange={(e) => setBlurb(e.target.value)}
+                  placeholder="Master of Philosophy attendance reports."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>
+                Cancel
+              </Button>
+              <Button onClick={submit} disabled={busy}>
+                {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add programme
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-card)]">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Programme</TableHead>
+              <TableHead>Code</TableHead>
+              <TableHead>Keywords</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {programs.map((p) => (
+              <TableRow key={p.code}>
+                <TableCell>
+                  <p className="font-medium">{p.label}</p>
+                  <p className="text-xs text-muted-foreground">{p.blurb}</p>
+                </TableCell>
+                <TableCell className="font-mono text-xs">{p.code}</TableCell>
+                <TableCell className="text-xs">{p.tokens.join(" + ")}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Edit ${p.label}`}
+                    onClick={() => {
+                      setEditId(p.id);
+                      setEditLabel(p.label);
+                      setEditBlurb(p.blurb);
+                      setEditTokens(p.tokens.join(", "));
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Delete ${p.label}`}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove {p.label}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          The card disappears from the home page. Programmes that still
+                          have reports cannot be removed.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => void doDelete(p.id)}>
+                          Remove
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={!!editId} onOpenChange={(o) => !o && setEditId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit programme</DialogTitle>
+            <DialogDescription>Update the name, description or keywords.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="e-label">Display name</Label>
+              <Input
+                id="e-label"
+                value={editLabel}
+                onChange={(e) => setEditLabel(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="e-tokens">Required keywords</Label>
+              <Input
+                id="e-tokens"
+                value={editTokens}
+                onChange={(e) => setEditTokens(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="e-blurb">Short description</Label>
+              <Input
+                id="e-blurb"
+                value={editBlurb}
+                onChange={(e) => setEditBlurb(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditId(null)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit} disabled={busy}>
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
