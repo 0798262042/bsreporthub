@@ -259,7 +259,7 @@ function OverviewTab() {
           <ResponsiveContainer width="100%" height={260}>
             <BarChart
               data={data.reportsByCategory.map((r) => ({
-                name: CATEGORY_LABELS[r.category as Category],
+                name: CATEGORY_LABELS[r.category as Category] ?? r.category,
                 Reports: r.count,
               }))}
             >
@@ -873,7 +873,7 @@ function RecentActivity() {
                     {r.name}
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    {CATEGORY_LABELS[r.category as Category]} ·{" "}
+                    {CATEGORY_LABELS[r.category as Category] ?? r.category} ·{" "}
                     {new Date(r.created_at).toLocaleString()}
                   </p>
                 </div>
