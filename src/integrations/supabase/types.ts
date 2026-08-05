@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      programs: {
+        Row: {
+          blurb: string
+          code: string
+          created_at: string
+          id: string
+          label: string
+          sort_order: number
+          tokens: Json
+          updated_at: string
+        }
+        Insert: {
+          blurb?: string
+          code: string
+          created_at?: string
+          id?: string
+          label: string
+          sort_order?: number
+          tokens?: Json
+          updated_at?: string
+        }
+        Update: {
+          blurb?: string
+          code?: string
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          tokens?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           category: string

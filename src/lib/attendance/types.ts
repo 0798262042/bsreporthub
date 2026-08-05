@@ -37,7 +37,8 @@ export type Report = {
   sessions: StoredSession[];
 };
 
-export type Category = "MBA" | "PDBA" | "MMM" | "MBA_PDBA";
+// Programme codes are admin-managed at runtime, so this is an open string type.
+export type Category = string;
 export const CATEGORIES: Category[] = ["MBA", "PDBA", "MMM", "MBA_PDBA"];
 
 export const CATEGORY_LABELS: Record<Category, string> = {
