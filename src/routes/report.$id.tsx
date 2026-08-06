@@ -254,7 +254,10 @@ function ReportPage() {
         for (const s of parsed.sessions) stored.push(toStoredSession(s));
       }
       if (stored.length === 0) {
-        toast.error("Unable to import attendance.");
+        rejectWithFix(
+          "Unable to import attendance.",
+          "Open the file in Excel and re-save it as the original Zoom export (.xlsx/.xls/.csv). It must keep the Zoom header row (Topic, Start time) and the participant table (Name, Join time, Leave time).",
+        );
         return;
       }
       // Lecturer lock — every session in a report must be for the same lecturer.
@@ -270,8 +273,9 @@ function ReportPage() {
           return k && k !== expected;
         });
         if (mismatch) {
-          toast.error(
+          rejectWithFix(
             `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
+            `This report only accepts sessions for "${prettyLecturer(report.sessions[0]?.topic ?? "")}". Go back to the programme page and upload this file there — it will open or create the correct report. If the lecturer name in the Zoom topic is misspelled, fix the topic and re-export.`,
           );
           return;
         }
@@ -289,8 +293,9 @@ function ReportPage() {
           return k && k !== expectedModule;
         });
         if (mismatch) {
-          toast.error(
+          rejectWithFix(
             `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
+            `This report is for "${prettyModule(report.sessions[0]?.topic ?? "")}". Upload this file from the programme page instead so it lands in its own module report, or correct the module name in the Zoom topic and re-export.`,
           );
           return;
         }
@@ -299,8 +304,9 @@ function ReportPage() {
       const dupSet = new Set(dupes.map((d) => `${d.date}|${d.topic}`));
       const fresh = stored.filter((s) => !dupSet.has(`${s.date}|${s.topic}`));
       if (dupes.length) {
-        toast.error(
+        rejectWithFix(
           `Skipped ${dupes.length} duplicate session(s) already in this report.`,
+          "These sessions are already saved here. Upload a different session date, or delete the existing session first if you need to replace it.",
         );
       }
       if (fresh.length === 0) return;
@@ -317,7 +323,10 @@ function ReportPage() {
       toast.success(`Added ${fresh.length} session(s).`);
     } catch (e) {
       console.error(e);
-      toast.error("Could not parse one of the files.");
+      rejectWithFix(
+        "Could not parse one of the files.",
+        "Use the unmodified Zoom attendance export. Remove extra sheets, merged cells or manually added rows, keep the original column headings, and try one file at a time.",
+      );
     } finally {
       setBusy(false);
     }
