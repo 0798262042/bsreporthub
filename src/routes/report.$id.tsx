@@ -58,6 +58,7 @@ import { exportReportExcel } from "@/lib/attendance/export-excel";
 import { exportReportPdf } from "@/lib/attendance/export-pdf";
 import { cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
+import { rejectWithFix } from "@/lib/reject-toast";
 import type { DateRange } from "react-day-picker";
 
 // Drop trailing/inline time ranges such as "17:30 TO 20:30" or "5:00 PM - 8:00 PM"
