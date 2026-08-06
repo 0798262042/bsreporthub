@@ -4,6 +4,7 @@ import type { StoredSession, StudentRow } from "./types";
 import { formatTime, formatDate } from "./normalize";
 import { computeStats, reportDateRange } from "./combine";
 import { buildExportFilename } from "./filename";
+import { applyPrintSetup } from "./xlsx-print";
 
 type Cell = XLSX.CellObject;
 
@@ -192,23 +193,31 @@ export function exportReportExcel(
 
   // Column widths
   ws["!cols"] = [
-    { wch: 30 },
-    ...sessions.flatMap(() => [{ wch: 12 }, { wch: 12 }]),
-    { wch: 14 },
-    { wch: 16 },
+    { wch: 26 },
+    ...sessions.flatMap(() => [{ wch: 9 }, { wch: 9 }]),
+    { wch: 11 },
+    { wch: 13 },
   ];
   // Row heights
   ws["!rows"] = [{ hpt: 28 }, { hpt: 34 }, {}, { hpt: 26 }, { hpt: 22 }];
   // Freeze top rows
   ws["!freeze"] = { xSplit: 1, ySplit: 5 };
-  (ws as XLSX.WorkSheet & { "!printSetup"?: unknown })["!printSetup"] = {
-    orientation: "landscape",
-    fitToPage: true,
+  ws["!margins"] = {
+    left: 0.25,
+    right: 0.25,
+    top: 0.4,
+    bottom: 0.4,
+    header: 0.2,
+    footer: 0.2,
   };
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+  const raw = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+  const out = applyPrintSetup(raw, {
+    sheetName: "Attendance",
+    titleRows: [4, 5],
+  });
   downloadBlob(
     new Blob([out], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
