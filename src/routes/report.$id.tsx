@@ -60,14 +60,37 @@ import { cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 import type { DateRange } from "react-day-picker";
 
+// Drop trailing/inline time ranges such as "17:30 TO 20:30" or "5:00 PM - 8:00 PM"
+// so they are never mistaken for a lecturer or module name.
+function stripTimeRanges(topic: string): string {
+  return (topic || "")
+    .replace(
+      /\b\d{1,2}[:.]\d{2}\s*(?:am|pm)?\s*(?:-|–|—|to|until|till)\s*\d{1,2}[:.]\d{2}\s*(?:am|pm)?\b/gi,
+      "",
+    )
+    .replace(/\s{2,}/g, " ")
+    .replace(/[\s\-–—:]+$/g, "")
+    .trim();
+}
+
+// Split a Zoom topic into its dash-separated chunks. Handles "A – B", "A - B"
+// and the common "BARF501 -Michael De Lange" (no space after the dash).
+function topicParts(topic: string): string[] {
+  const t = stripTimeRanges(topic);
+  if (!t) return [];
+  return t
+    .split(/\s*[–—]\s*|\s+-\s*|\s*-\s+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
 // Extract a normalized "lecturer" signature from a Zoom session topic.
 // Topics look like "BS-18 May 2026-MMM Research – Dr Mashayamombe" — the
-// lecturer name is the last chunk after an en/em dash or " - ".
+// lecturer name is the last chunk after a dash.
 function lecturerKey(topic: string): string {
-  const t = (topic || "").trim();
-  if (!t) return "";
-  const parts = t.split(/\s*[–—]\s*|\s-\s/);
-  const last = (parts[parts.length - 1] || t).toLowerCase();
+  const parts = topicParts(topic);
+  if (parts.length === 0) return "";
+  const last = (parts[parts.length - 1] || "").toLowerCase();
   return last.replace(/\s+/g, " ").trim();
 }
 
@@ -75,12 +98,9 @@ function lecturerKey(topic: string): string {
 // like "BS-23 June 2026 - PDBA AND MBA HR STRATEGIES ... - PROF WERNER".
 // Falls back to the whole topic when there aren't enough dash-separated parts.
 function moduleKey(topic: string): string {
-  const t = (topic || "").trim();
+  const t = stripTimeRanges(topic);
   if (!t) return "";
-  const parts = t
-    .split(/\s*[–—]\s*|\s-\s/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+  const parts = topicParts(topic);
   let mid: string;
   if (parts.length >= 3) mid = parts.slice(1, -1).join(" ");
   else if (parts.length === 2) mid = parts[0];
@@ -91,13 +111,12 @@ function moduleKey(topic: string): string {
 }
 
 function prettyLecturer(topic: string): string {
-  const t = (topic || "").trim();
-  const parts = t.split(/\s*[–—]\s*|\s-\s/).map((p) => p.trim()).filter(Boolean);
-  return parts[parts.length - 1] || t;
+  const parts = topicParts(topic);
+  return parts[parts.length - 1] || stripTimeRanges(topic);
 }
 function prettyModule(topic: string): string {
-  const t = (topic || "").trim();
-  const parts = t.split(/\s*[–—]\s*|\s-\s/).map((p) => p.trim()).filter(Boolean);
+  const t = stripTimeRanges(topic);
+  const parts = topicParts(topic);
   let mod: string;
   if (parts.length >= 3) mod = parts.slice(1, -1).join(" — ");
   else if (parts.length === 2) mod = parts[0];
