@@ -48,6 +48,7 @@ import { stripDates } from "@/lib/attendance/normalize";
 import type { Category } from "@/lib/attendance/types";
 import { usePrograms } from "@/hooks/use-programs";
 import { logActivity } from "@/lib/activity";
+import { rejectWithFix } from "@/lib/reject-toast";
 
 export const Route = createFileRoute("/category/$category")({
   component: CategoryPage,
@@ -133,17 +134,26 @@ function CategoryPage() {
         for (const s of parsed.sessions) stored.push(toStoredSession(s));
       }
       if (stored.length === 0) {
-        toast.error("Unable to import attendance.");
+        rejectWithFix(
+          "Unable to import attendance.",
+          "Upload the original Zoom export (.xlsx/.xls/.csv) with its header row (Topic, Start time) and participant table (Name, Join time, Leave time) intact.",
+        );
         return;
       }
       const match = sessionsMatchCategory(stored, tokens, otherTokens);
       if (!match.ok) {
-        toast.error(`Not a ${label} file. Topic: "${match.badTopic}".`);
+        rejectWithFix(
+          `Not a ${label} file. Topic: "${match.badTopic}".`,
+          `The Zoom topic must contain "${tokens.join(" + ")}" and no other programme keywords. Upload it under the matching programme card, or rename the Zoom topic to include the correct programme code and re-export.`,
+        );
         return;
       }
       const dup = await findReportContainingSessions(stored);
       if (dup) {
-        toast.error(`Already uploaded in "${dup.report.name}".`);
+        rejectWithFix(
+          `Already uploaded in "${dup.report.name}".`,
+          "This session already exists. Open that report to view it, or delete the existing session first if you want to re-upload a corrected file.",
+        );
         navigate({ to: "/report/$id", params: { id: dup.report.id } });
         return;
       }
@@ -160,7 +170,10 @@ function CategoryPage() {
       );
       const report = existing ?? (await createReport(cleanedTitle, category));
       if (!report) {
-        toast.error("Could not create report.");
+        rejectWithFix(
+          "Could not create report.",
+          "Check your connection and try again. If it keeps failing, create the report manually with “New report” and then upload the file inside it.",
+        );
         return;
       }
       const relabeled = relabelSessions(stored);
@@ -188,7 +201,10 @@ function CategoryPage() {
       navigate({ to: "/report/$id", params: { id: report.id } });
     } catch (e) {
       console.error(e);
-      toast.error("Could not parse that file.");
+      rejectWithFix(
+        "Could not parse that file.",
+        "Use the unmodified Zoom export — no extra sheets, merged cells or manually added rows — and upload one file at a time.",
+      );
     } finally {
       setBusy(false);
     }
