@@ -157,7 +157,6 @@ export function exportReportExcel(
     ["Highest Attendance", `${stats.highest}%`],
     ["Lowest Attendance", `${stats.lowest}%`],
     ["Perfect Attendance", stats.perfect],
-    ["Absent (0 sessions)", stats.absent],
   ];
   for (const [k, v] of statPairs) {
     const rw: Cell[] = [
