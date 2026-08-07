@@ -20,6 +20,17 @@ export function applyPrintSetup(
         .replace(/<pageMargins[^>]*\/>/g, "")
         .replace(/<pageSetup[^>]*\/>/g, "")
         .replace(/<sheetPr[^>]*\/>/g, "");
+      // <ignoredErrors> must come AFTER printOptions/pageMargins/pageSetup in
+      // the OOXML schema; pull it out and re-append it in the right order,
+      // otherwise Excel treats the sheet as corrupt and opens it empty.
+      let ignored = "";
+      xml = xml.replace(
+        /<ignoredErrors>[\s\S]*?<\/ignoredErrors>|<ignoredErrors[^>]*\/>/,
+        (m) => {
+          ignored = m;
+          return "";
+        },
+      );
       xml = xml.replace(
         /(<worksheet[^>]*>)/,
         `$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>`,
@@ -29,6 +40,7 @@ export function applyPrintSetup(
         `<printOptions horizontalCentered="1"/>` +
           `<pageMargins left="0.25" right="0.25" top="0.4" bottom="0.4" header="0.2" footer="0.2"/>` +
           `<pageSetup paperSize="9" orientation="landscape" scale="100" fitToWidth="1" fitToHeight="0" horizontalDpi="300" verticalDpi="300"/>` +
+          ignored +
           `</worksheet>`,
       );
       files[sheetPath] = strToU8(xml);
@@ -47,7 +59,14 @@ export function applyPrintSetup(
       }
     }
 
-    const out = zipSync(files, { level: 6 });
+    // Keep [Content_Types].xml as the first entry in the archive.
+    const ordered: Record<string, Uint8Array> = {};
+    if (files["[Content_Types].xml"])
+      ordered["[Content_Types].xml"] = files["[Content_Types].xml"];
+    for (const k of Object.keys(files))
+      if (k !== "[Content_Types].xml") ordered[k] = files[k];
+
+    const out = zipSync(ordered, { level: 6 });
     return out.buffer.slice(
       out.byteOffset,
       out.byteOffset + out.byteLength,
