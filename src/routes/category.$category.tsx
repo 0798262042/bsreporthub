@@ -104,6 +104,7 @@ function CategoryPage() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredList = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -113,6 +114,18 @@ function CategoryPage() {
       return r.sessions.some((s) => (s.topic || "").toLowerCase().includes(q));
     });
   }, [list, query]);
+
+  // Reset to first page when filters or category change.
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [query, category]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / ITEMS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedList = filteredList.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  );
 
   const doCreate = async () => {
     const r = await createReport(stripDates(name) || `New ${label} report`, category);
