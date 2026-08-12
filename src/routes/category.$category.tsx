@@ -5,6 +5,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
   Trash2,
   Users,
   Plus,
@@ -49,10 +51,13 @@ import type { Category } from "@/lib/attendance/types";
 import { usePrograms } from "@/hooks/use-programs";
 import { logActivity } from "@/lib/activity";
 import { rejectWithFix } from "@/lib/reject-toast";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/category/$category")({
   component: CategoryPage,
 });
+
+const ITEMS_PER_PAGE = 8;
 
 // Validate that every session in an upload matches the target category by topic.
 // The topic must contain every token of this programme, and none of the tokens
