@@ -116,7 +116,7 @@ function CategoryPage() {
   }, [list, query]);
 
   // Reset to first page when filters or category change.
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [query, category]);
 
