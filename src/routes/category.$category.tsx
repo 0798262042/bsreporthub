@@ -1,10 +1,12 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
   ArrowRight,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
   Trash2,
   Users,
   Plus,
@@ -49,10 +51,13 @@ import type { Category } from "@/lib/attendance/types";
 import { usePrograms } from "@/hooks/use-programs";
 import { logActivity } from "@/lib/activity";
 import { rejectWithFix } from "@/lib/reject-toast";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/category/$category")({
   component: CategoryPage,
 });
+
+const ITEMS_PER_PAGE = 8;
 
 // Validate that every session in an upload matches the target category by topic.
 // The topic must contain every token of this programme, and none of the tokens
@@ -99,6 +104,7 @@ function CategoryPage() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredList = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -108,6 +114,18 @@ function CategoryPage() {
       return r.sessions.some((s) => (s.topic || "").toLowerCase().includes(q));
     });
   }, [list, query]);
+
+  // Reset to first page when filters or category change.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, category]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / ITEMS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedList = filteredList.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  );
 
   const doCreate = async () => {
     const r = await createReport(stripDates(name) || `New ${label} report`, category);
@@ -297,88 +315,134 @@ function CategoryPage() {
                 </p>
               </div>
             ) : (
-              <ul className="grid gap-4 sm:grid-cols-2">
-                {filteredList.map((r) => (
-                  <li
-                    key={r.id}
-                    className="group rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-shadow"
-                  >
-                    <div className="flex items-start justify-between gap-2">
+              <>
+                <ul className="grid gap-4 sm:grid-cols-2">
+                  {paginatedList.map((r) => (
+                    <li
+                      key={r.id}
+                      className="group rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <Link
+                          to="/report/$id"
+                          params={{ id: r.id }}
+                          className="text-left flex-1"
+                        >
+                          <p className="font-semibold text-foreground line-clamp-2">
+                            {r.name}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Updated {new Date(r.updatedAt).toLocaleString()}
+                          </p>
+                        </Link>
+                        {isAdmin && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete report?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                "{r.name}" and its sessions will be permanently deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground"
+                                onClick={() => {
+                                  deleteReport(r.id);
+                                  void logActivity({
+                                    action: "report.deleted",
+                                    resourceType: "report",
+                                    resourceId: r.id,
+                                    details: { name: r.name, category: r.category },
+                                  });
+                                  toast.success("Report deleted");
+                                }}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        )}
+                      </div>
+                      <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {r.sessions.length} session{r.sessions.length === 1 ? "" : "s"}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" />
+                          {new Set(
+                            r.sessions.flatMap((s) => s.attendees.map((a) => a.name)),
+                          ).size}{" "}
+                          students
+                        </span>
+                      </div>
                       <Link
                         to="/report/$id"
                         params={{ id: r.id }}
-                        className="text-left flex-1"
+                        className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:gap-2 transition-all"
                       >
-                        <p className="font-semibold text-foreground line-clamp-2">
-                          {r.name}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Updated {new Date(r.updatedAt).toLocaleString()}
-                        </p>
+                        Open <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
-                      {isAdmin && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete report?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              "{r.name}" and its sessions will be permanently deleted.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive text-destructive-foreground"
-                              onClick={() => {
-                                deleteReport(r.id);
-                                void logActivity({
-                                  action: "report.deleted",
-                                  resourceType: "report",
-                                  resourceId: r.id,
-                                  details: { name: r.name, category: r.category },
-                                });
-                                toast.success("Report deleted");
-                              }}
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      )}
-                    </div>
-                    <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {r.sessions.length} session{r.sessions.length === 1 ? "" : "s"}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        {new Set(
-                          r.sessions.flatMap((s) => s.attendees.map((a) => a.name)),
-                        ).size}{" "}
-                        students
-                      </span>
-                    </div>
-                    <Link
-                      to="/report/$id"
-                      params={{ id: r.id }}
-                      className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:gap-2 transition-all"
+                    </li>
+                  ))}
+                </ul>
+                {totalPages > 1 && (
+                  <nav
+                    aria-label="Report pagination"
+                    className="mt-8 flex flex-wrap items-center justify-center gap-2"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="gap-1 rounded-full"
                     >
-                      Open <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+                      <ChevronLeft className="h-4 w-4" /> Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={cn(
+                            "h-9 w-9 rounded-full p-0 transition-colors",
+                            currentPage === page &&
+                              "bg-[image:var(--gradient-brand)] text-white hover:opacity-90",
+                          )}
+                          aria-label={`Go to page ${page}`}
+                          aria-current={currentPage === page ? "page" : undefined}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="gap-1 rounded-full"
+                    >
+                      Next <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </nav>
+                )}
+              </>
             )}
           </div>
           <div>
