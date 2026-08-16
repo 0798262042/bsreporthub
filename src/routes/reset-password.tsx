@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { GraduationCap, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,15 +18,81 @@ function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Supabase parses the recovery token from the URL hash and fires PASSWORD_RECOVERY.
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+        setReady(true);
+        setChecking(false);
+      }
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        const query = url.searchParams;
+        const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+
+        const errorDescription = query.get("error_description") ?? hash.get("error_description");
+        if (errorDescription) {
+          setLinkError(errorDescription);
+          return;
+        }
+
+        // 1) PKCE style link: ?code=...
+        const code = query.get("code");
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            setLinkError(error.message);
+            return;
+          }
+          setReady(true);
+          window.history.replaceState({}, "", "/reset-password");
+          return;
+        }
+
+        // 2) Token-hash style link: ?token_hash=...&type=recovery
+        const tokenHash = query.get("token_hash") ?? query.get("token");
+        const type = (query.get("type") ?? "recovery") as "recovery";
+        if (tokenHash) {
+          const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+          if (error) {
+            setLinkError(error.message);
+            return;
+          }
+          setReady(true);
+          window.history.replaceState({}, "", "/reset-password");
+          return;
+        }
+
+        // 3) Implicit style link: #access_token=...&refresh_token=...
+        const accessToken = hash.get("access_token");
+        const refreshToken = hash.get("refresh_token");
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            setLinkError(error.message);
+            return;
+          }
+          setReady(true);
+          window.history.replaceState({}, "", "/reset-password");
+          return;
+        }
+
+        // 4) Already-established recovery session
+        const { data } = await supabase.auth.getSession();
+        if (data.session) setReady(true);
+      } finally {
+        setChecking(false);
+      }
+    })();
+
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -48,7 +114,8 @@ function ResetPasswordPage() {
       return;
     }
     toast.success("Password updated.");
-    navigate({ to: "/", replace: true });
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
   }
 
   return (
@@ -62,10 +129,21 @@ function ResetPasswordPage() {
         </div>
         <div className={authCardClass}>
           <h1 className="text-xl font-semibold text-foreground">Set a new password</h1>
-          {!ready ? (
-            <p className="mt-4 text-sm text-muted-foreground">
-              Waiting for a valid reset link… Open this page from the email we sent you.
+          {checking ? (
+            <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Verifying your reset link…
             </p>
+          ) : !ready ? (
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {linkError
+                  ? "This reset link is invalid or has expired."
+                  : "Open this page from the reset link in your email."}
+              </p>
+              <Link to="/forgot-password" className="inline-block text-sm text-primary hover:underline">
+                Request a new reset link
+              </Link>
+            </div>
           ) : (
             <form onSubmit={onSubmit} className="mt-6 space-y-4">
               <div className="space-y-1.5">
