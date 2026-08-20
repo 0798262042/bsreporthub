@@ -59,6 +59,9 @@ import { exportReportPdf } from "@/lib/attendance/export-pdf";
 import { cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 import { rejectWithFix } from "@/lib/reject-toast";
+import { Switch } from "@/components/ui/switch";
+import { lecturerLooksSame, moduleLooksSame } from "@/lib/attendance/match";
+import { authorizeAdminOverride } from "@/lib/upload-override.functions";
 import type { DateRange } from "react-day-picker";
 
 // Drop trailing/inline time ranges such as "17:30 TO 20:30" or "5:00 PM - 8:00 PM"
@@ -166,6 +169,13 @@ function ReportPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [showHidden, setShowHidden] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [allowOverride, setAllowOverride] = useState(false);
+  const [pending, setPending] = useState<{
+    files: File[];
+    stored: import("@/lib/attendance/types").StoredSession[];
+    detectedTopic: string;
+    selectedTopic: string;
+  } | null>(null);
 
   const hiddenSet = useMemo(
     () => new Set((report?.hiddenNames ?? []).map((n) => n.toLowerCase())),
