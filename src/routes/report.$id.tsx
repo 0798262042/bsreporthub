@@ -673,9 +673,74 @@ function ReportPage() {
             ))}
             <div className="min-h-[140px]">
               <UploadDropzone onFiles={handleUpload} busy={busy} compact />
+              {isAdmin && (
+                <div className="mt-3 flex items-start gap-3 rounded-xl border border-amber-300/70 bg-amber-50 p-3">
+                  <Switch
+                    id="admin-override"
+                    checked={allowOverride}
+                    onCheckedChange={setAllowOverride}
+                  />
+                  <label htmlFor="admin-override" className="cursor-pointer text-xs">
+                    <span className="block font-semibold text-amber-900">
+                      Allow Admin Override
+                    </span>
+                    <span className="text-amber-800">
+                      {allowOverride
+                        ? "Topic mismatches will ask you to confirm instead of being rejected. Every override is recorded in the audit log."
+                        : "Off — files whose topic does not match this report are rejected."}
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
           </div>
         </section>
+
+        {/* Admin override confirmation */}
+        <AlertDialog
+          open={!!pending}
+          onOpenChange={(o) => {
+            if (!o) setPending(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm override upload</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-left">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      You are uploading this file under
+                    </p>
+                    <p className="font-medium text-foreground">
+                      {pending?.selectedTopic}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      File detected as
+                    </p>
+                    <p className="font-medium text-foreground">
+                      {pending?.detectedTopic}
+                    </p>
+                  </div>
+                  <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
+                    ⚠ Topic/session name does not exactly match. This file does not
+                    exactly match the selected topic. You are overriding the normal
+                    validation. Please confirm that this file belongs to the selected
+                    section.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmOverride}>
+                Continue Upload
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Filters */}
         <section className="mt-10 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-card)]">
