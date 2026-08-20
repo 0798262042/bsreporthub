@@ -59,6 +59,9 @@ import { exportReportPdf } from "@/lib/attendance/export-pdf";
 import { cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 import { rejectWithFix } from "@/lib/reject-toast";
+import { Switch } from "@/components/ui/switch";
+import { lecturerLooksSame, moduleLooksSame } from "@/lib/attendance/match";
+import { authorizeAdminOverride } from "@/lib/upload-override.functions";
 import type { DateRange } from "react-day-picker";
 
 // Drop trailing/inline time ranges such as "17:30 TO 20:30" or "5:00 PM - 8:00 PM"
@@ -166,6 +169,13 @@ function ReportPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [showHidden, setShowHidden] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [allowOverride, setAllowOverride] = useState(false);
+  const [pending, setPending] = useState<{
+    files: File[];
+    stored: import("@/lib/attendance/types").StoredSession[];
+    detectedTopic: string;
+    selectedTopic: string;
+  } | null>(null);
 
   const hiddenSet = useMemo(
     () => new Set((report?.hiddenNames ?? []).map((n) => n.toLowerCase())),
@@ -261,46 +271,72 @@ function ReportPage() {
         );
         return;
       }
-      // Lecturer lock — every session in a report must be for the same lecturer.
-      const existingLecturers = new Set(
-        (report?.sessions ?? [])
-          .map((s) => lecturerKey(s.topic))
-          .filter(Boolean),
-      );
-      if (existingLecturers.size > 0) {
-        const expected = [...existingLecturers][0];
+      const selectedTopic = report?.sessions[0]?.topic ?? report?.name ?? "";
+      // Lecturer + module lock. Comparison is tolerant of dates, programme
+      // prefixes, module codes, punctuation and casing (see lib/attendance/match).
+      if (selectedTopic) {
+        const filenames = files.map((f) => f.name).join(" ");
         const mismatch = stored.find((s) => {
-          const k = lecturerKey(s.topic);
-          return k && k !== expected;
+          const fileLec = lecturerKey(s.topic);
+          const fileMod = moduleKey(s.topic);
+          const lecOk =
+            !fileLec ||
+            lecturerLooksSame(fileLec, lecturerKey(selectedTopic)) ||
+            lecturerLooksSame(filenames, lecturerKey(selectedTopic));
+          const modOk =
+            !fileMod ||
+            moduleLooksSame(fileMod, moduleKey(selectedTopic)) ||
+            moduleLooksSame(s.topic, selectedTopic) ||
+            moduleLooksSame(filenames, selectedTopic);
+          return !(lecOk && modOk);
         });
         if (mismatch) {
-          rejectWithFix(
-            `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
-            `This report only accepts sessions for "${prettyLecturer(report.sessions[0]?.topic ?? "")}". Go back to the programme page and upload this file there — it will open or create the correct report. If the lecturer name in the Zoom topic is misspelled, fix the topic and re-export.`,
+          if (isAdmin && allowOverride) {
+            // Admin override enabled — ask for explicit confirmation instead.
+            setPending({
+              files,
+              stored,
+              detectedTopic: mismatch.topic || files[0]?.name || "",
+              selectedTopic,
+            });
+            return;
+          }
+          const lecOk = lecturerLooksSame(
+            lecturerKey(mismatch.topic),
+            lecturerKey(selectedTopic),
           );
+          if (!lecOk) {
+            rejectWithFix(
+              `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
+              `This report only accepts sessions for "${prettyLecturer(selectedTopic)}". Go back to the programme page and upload this file there — it will open or create the correct report. If the lecturer name in the Zoom topic is misspelled, fix the topic and re-export.`,
+            );
+          } else {
+            rejectWithFix(
+              `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
+              `This report is for "${prettyModule(selectedTopic)}". Upload this file from the programme page instead so it lands in its own module report, or correct the module name in the Zoom topic and re-export.`,
+            );
+          }
           return;
         }
       }
-      // Module lock — every session in a report must be for the same module.
-      const existingModules = new Set(
-        (report?.sessions ?? [])
-          .map((s) => moduleKey(s.topic))
-          .filter(Boolean),
+      await persistSessions(files, stored, false);
+    } catch (e) {
+      console.error(e);
+      rejectWithFix(
+        "Could not parse one of the files.",
+        "Use the unmodified Zoom attendance export. Remove extra sheets, merged cells or manually added rows, keep the original column headings, and try one file at a time.",
       );
-      if (existingModules.size > 0) {
-        const expectedModule = [...existingModules][0];
-        const mismatch = stored.find((s) => {
-          const k = moduleKey(s.topic);
-          return k && k !== expectedModule;
-        });
-        if (mismatch) {
-          rejectWithFix(
-            `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
-            `This report is for "${prettyModule(report.sessions[0]?.topic ?? "")}". Upload this file from the programme page instead so it lands in its own module report, or correct the module name in the Zoom topic and re-export.`,
-          );
-          return;
-        }
-      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Insert the sessions (skipping duplicates) and write the audit trail.
+  const persistSessions = async (
+    files: File[],
+    stored: import("@/lib/attendance/types").StoredSession[],
+    override: boolean,
+  ) => {
       const dupes = await findDuplicateSessions(id, stored);
       const dupSet = new Set(dupes.map((d) => `${d.date}|${d.topic}`));
       const fresh = stored.filter((s) => !dupSet.has(`${s.date}|${s.topic}`));
@@ -319,14 +355,34 @@ function ReportPage() {
         details: {
           filename: files.map((f) => f.name).join(", "),
           sessions: fresh.length,
+          adminOverride: override,
         },
       });
       toast.success(`Added ${fresh.length} session(s).`);
+  };
+
+  // Admin confirmed the override — authorize server-side, then upload.
+  const confirmOverride = async () => {
+    if (!pending) return;
+    const p = pending;
+    setPending(null);
+    setBusy(true);
+    try {
+      await authorizeAdminOverride({
+        data: {
+          reportId: id,
+          filename: p.files.map((f) => f.name).join(", "),
+          detectedTopic: p.detectedTopic,
+          selectedTopic: p.selectedTopic,
+          sessions: p.stored.length,
+        },
+      });
+      await persistSessions(p.files, p.stored, true);
     } catch (e) {
       console.error(e);
       rejectWithFix(
-        "Could not parse one of the files.",
-        "Use the unmodified Zoom attendance export. Remove extra sheets, merged cells or manually added rows, keep the original column headings, and try one file at a time.",
+        "Override not permitted.",
+        "Only administrators can override upload validation. Sign in with an administrator account, or upload the file from the correct programme page.",
       );
     } finally {
       setBusy(false);
@@ -617,9 +673,74 @@ function ReportPage() {
             ))}
             <div className="min-h-[140px]">
               <UploadDropzone onFiles={handleUpload} busy={busy} compact />
+              {isAdmin && (
+                <div className="mt-3 flex items-start gap-3 rounded-xl border border-amber-300/70 bg-amber-50 p-3">
+                  <Switch
+                    id="admin-override"
+                    checked={allowOverride}
+                    onCheckedChange={setAllowOverride}
+                  />
+                  <label htmlFor="admin-override" className="cursor-pointer text-xs">
+                    <span className="block font-semibold text-amber-900">
+                      Allow Admin Override
+                    </span>
+                    <span className="text-amber-800">
+                      {allowOverride
+                        ? "Topic mismatches will ask you to confirm instead of being rejected. Every override is recorded in the audit log."
+                        : "Off — files whose topic does not match this report are rejected."}
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
           </div>
         </section>
+
+        {/* Admin override confirmation */}
+        <AlertDialog
+          open={!!pending}
+          onOpenChange={(o) => {
+            if (!o) setPending(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm override upload</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-left">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      You are uploading this file under
+                    </p>
+                    <p className="font-medium text-foreground">
+                      {pending?.selectedTopic}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      File detected as
+                    </p>
+                    <p className="font-medium text-foreground">
+                      {pending?.detectedTopic}
+                    </p>
+                  </div>
+                  <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
+                    ⚠ Topic/session name does not exactly match. This file does not
+                    exactly match the selected topic. You are overriding the normal
+                    validation. Please confirm that this file belongs to the selected
+                    section.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmOverride}>
+                Continue Upload
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Filters */}
         <section className="mt-10 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-card)]">

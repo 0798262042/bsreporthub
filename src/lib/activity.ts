@@ -12,6 +12,7 @@ export type ActivityAction =
   | "user.role_granted"
   | "user.role_revoked"
   | "spreadsheet.uploaded"
+  | "spreadsheet.override_upload"
   | "report.created"
   | "report.renamed"
   | "report.deleted"
@@ -32,6 +33,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   "user.role_granted": "Administrator role granted",
   "user.role_revoked": "Administrator role revoked",
   "spreadsheet.uploaded": "Spreadsheet uploaded",
+  "spreadsheet.override_upload": "Upload validation overridden by admin",
   "report.created": "Report created",
   "report.renamed": "Report renamed",
   "report.deleted": "Report deleted",
