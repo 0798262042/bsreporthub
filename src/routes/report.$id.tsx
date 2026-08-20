@@ -271,46 +271,72 @@ function ReportPage() {
         );
         return;
       }
-      // Lecturer lock — every session in a report must be for the same lecturer.
-      const existingLecturers = new Set(
-        (report?.sessions ?? [])
-          .map((s) => lecturerKey(s.topic))
-          .filter(Boolean),
-      );
-      if (existingLecturers.size > 0) {
-        const expected = [...existingLecturers][0];
+      const selectedTopic = report?.sessions[0]?.topic ?? report?.name ?? "";
+      // Lecturer + module lock. Comparison is tolerant of dates, programme
+      // prefixes, module codes, punctuation and casing (see lib/attendance/match).
+      if (selectedTopic) {
+        const filenames = files.map((f) => f.name).join(" ");
         const mismatch = stored.find((s) => {
-          const k = lecturerKey(s.topic);
-          return k && k !== expected;
+          const fileLec = lecturerKey(s.topic);
+          const fileMod = moduleKey(s.topic);
+          const lecOk =
+            !fileLec ||
+            lecturerLooksSame(fileLec, lecturerKey(selectedTopic)) ||
+            lecturerLooksSame(filenames, lecturerKey(selectedTopic));
+          const modOk =
+            !fileMod ||
+            moduleLooksSame(fileMod, moduleKey(selectedTopic)) ||
+            moduleLooksSame(s.topic, selectedTopic) ||
+            moduleLooksSame(filenames, selectedTopic);
+          return !(lecOk && modOk);
         });
         if (mismatch) {
-          rejectWithFix(
-            `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
-            `This report only accepts sessions for "${prettyLecturer(report.sessions[0]?.topic ?? "")}". Go back to the programme page and upload this file there — it will open or create the correct report. If the lecturer name in the Zoom topic is misspelled, fix the topic and re-export.`,
+          if (isAdmin && allowOverride) {
+            // Admin override enabled — ask for explicit confirmation instead.
+            setPending({
+              files,
+              stored,
+              detectedTopic: mismatch.topic || files[0]?.name || "",
+              selectedTopic,
+            });
+            return;
+          }
+          const lecOk = lecturerLooksSame(
+            lecturerKey(mismatch.topic),
+            lecturerKey(selectedTopic),
           );
+          if (!lecOk) {
+            rejectWithFix(
+              `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
+              `This report only accepts sessions for "${prettyLecturer(selectedTopic)}". Go back to the programme page and upload this file there — it will open or create the correct report. If the lecturer name in the Zoom topic is misspelled, fix the topic and re-export.`,
+            );
+          } else {
+            rejectWithFix(
+              `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
+              `This report is for "${prettyModule(selectedTopic)}". Upload this file from the programme page instead so it lands in its own module report, or correct the module name in the Zoom topic and re-export.`,
+            );
+          }
           return;
         }
       }
-      // Module lock — every session in a report must be for the same module.
-      const existingModules = new Set(
-        (report?.sessions ?? [])
-          .map((s) => moduleKey(s.topic))
-          .filter(Boolean),
+      await persistSessions(files, stored, false);
+    } catch (e) {
+      console.error(e);
+      rejectWithFix(
+        "Could not parse one of the files.",
+        "Use the unmodified Zoom attendance export. Remove extra sheets, merged cells or manually added rows, keep the original column headings, and try one file at a time.",
       );
-      if (existingModules.size > 0) {
-        const expectedModule = [...existingModules][0];
-        const mismatch = stored.find((s) => {
-          const k = moduleKey(s.topic);
-          return k && k !== expectedModule;
-        });
-        if (mismatch) {
-          rejectWithFix(
-            `This attendance file belongs to ${prettyModuleAndLecturer(mismatch.topic)} and cannot be uploaded in this section report.`,
-            `This report is for "${prettyModule(report.sessions[0]?.topic ?? "")}". Upload this file from the programme page instead so it lands in its own module report, or correct the module name in the Zoom topic and re-export.`,
-          );
-          return;
-        }
-      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Insert the sessions (skipping duplicates) and write the audit trail.
+  const persistSessions = async (
+    files: File[],
+    stored: import("@/lib/attendance/types").StoredSession[],
+    override: boolean,
+  ) => {
       const dupes = await findDuplicateSessions(id, stored);
       const dupSet = new Set(dupes.map((d) => `${d.date}|${d.topic}`));
       const fresh = stored.filter((s) => !dupSet.has(`${s.date}|${s.topic}`));
@@ -329,14 +355,34 @@ function ReportPage() {
         details: {
           filename: files.map((f) => f.name).join(", "),
           sessions: fresh.length,
+          adminOverride: override,
         },
       });
       toast.success(`Added ${fresh.length} session(s).`);
+  };
+
+  // Admin confirmed the override — authorize server-side, then upload.
+  const confirmOverride = async () => {
+    if (!pending) return;
+    const p = pending;
+    setPending(null);
+    setBusy(true);
+    try {
+      await authorizeAdminOverride({
+        data: {
+          reportId: id,
+          filename: p.files.map((f) => f.name).join(", "),
+          detectedTopic: p.detectedTopic,
+          selectedTopic: p.selectedTopic,
+          sessions: p.stored.length,
+        },
+      });
+      await persistSessions(p.files, p.stored, true);
     } catch (e) {
       console.error(e);
       rejectWithFix(
-        "Could not parse one of the files.",
-        "Use the unmodified Zoom attendance export. Remove extra sheets, merged cells or manually added rows, keep the original column headings, and try one file at a time.",
+        "Override not permitted.",
+        "Only administrators can override upload validation. Sign in with an administrator account, or upload the file from the correct programme page.",
       );
     } finally {
       setBusy(false);
