@@ -37,6 +37,8 @@ import {
   CheckCircle2,
   Filter,
   Plus,
+  Download,
+
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -108,11 +110,52 @@ import {
   getDashboardStats,
   listActivityLogs,
 } from "@/lib/admin.functions";
-import { ACTIVITY_LABELS } from "@/lib/activity";
+import { ACTIVITY_LABELS, logActivity } from "@/lib/activity";
+import { listReports } from "@/lib/attendance/storage";
+import { exportAllReportsExcel } from "@/lib/attendance/export-all-excel";
 
 export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
 });
+
+/**
+ * Separate from the per-report Download Report buttons: builds ONE workbook
+ * with a worksheet per module/programme report.
+ */
+function DownloadAllReportsButton() {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant="outline"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const reports = await listReports();
+          const { sheets } = exportAllReportsExcel(reports);
+          void logActivity({
+            action: "report.exported_excel",
+            details: { scope: "all-reports", sheets },
+          });
+          toast.success(`Downloading all reports (${sheets} tabs).`);
+        } catch (e) {
+          console.error(e);
+          toast.error(
+            e instanceof Error && e.message
+              ? e.message
+              : "Could not export the reports workbook.",
+          );
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <Download className="h-4 w-4 mr-1.5" />
+      {busy ? "Preparing…" : "Download All Reports (Excel)"}
+    </Button>
+  );
+}
+
 
 type UserRow = Awaited<ReturnType<typeof listAllUsers>>[number];
 
