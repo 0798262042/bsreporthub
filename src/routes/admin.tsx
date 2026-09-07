@@ -154,13 +154,17 @@ function AdminDashboard() {
               System-wide overview, user management and audit trail.
             </p>
           </div>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-          >
-            Go to reports <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <DownloadAllReportsButton />
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              Go to reports <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
+
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="mt-8">
           <TabsList>
