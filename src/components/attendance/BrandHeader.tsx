@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { GraduationCap, LayoutDashboard, LogOut, ShieldCheck, User as UserIcon } from "lucide-react";
+import { GraduationCap, LayoutDashboard, LogOut, ShieldCheck, User as UserIcon, UserSearch } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -34,6 +34,12 @@ export function BrandHeader() {
         </Link>
         {user && (
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/student-search">
+                <UserSearch className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Student Search</span>
+              </Link>
+            </Button>
             {isAdmin && (
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/admin">
