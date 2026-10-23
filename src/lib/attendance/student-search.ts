@@ -31,33 +31,52 @@ type ReportIndex = {
   hidden: Set<string>;
 };
 
-function indexReport(report: Report): ReportIndex {
-  const { sessions } = combineReport(report.sessions);
-  return {
+type FullIndex = ReportIndex & { students: ReturnType<typeof combineReport>["students"] };
+const indexCache = new WeakMap<Report, FullIndex>();
+
+// Combining a report is expensive (fuzzy clustering), so do it once per report.
+function indexReport(report: Report): FullIndex {
+  const cached = indexCache.get(report);
+  if (cached) return cached;
+  const { sessions, students } = combineReport(report.sessions);
+  const idx = {
     report,
     sessions,
+    students,
     hidden: new Set(report.hiddenNames.map((n) => nameKey(n))),
   };
+  indexCache.set(report, idx);
+  return idx;
+}
+
+function bucketOf(name: string): string {
+  return nameKey(name).charAt(0);
 }
 
 /** Collect every distinct student name across all reports (fuzzy-clustered). */
 export function collectStudentNames(reports: Report[]): string[] {
-  const names: string[] = [];
+  // Exact-key dedupe first (cheap), then fuzzy-merge only within buckets
+  // sharing the same first letter to avoid an O(n²) scan of every name.
+  const byKey = new Map<string, string>();
   for (const report of reports) {
     const idx = indexReport(report);
-    const { students } = combineReport(report.sessions);
-    for (const s of students) {
-      if (idx.hidden.has(nameKey(s.name))) continue;
-      const existing = names.find((n) => sameStudent(n, s.name));
-      if (existing) {
-        const better = pickCanonicalName(existing, s.name);
-        if (better !== existing) names[names.indexOf(existing)] = better;
-      } else {
-        names.push(s.name);
-      }
+    for (const s of idx.students) {
+      const k = nameKey(s.name);
+      if (!k || idx.hidden.has(k)) continue;
+      const prev = byKey.get(k);
+      byKey.set(k, prev ? pickCanonicalName(prev, s.name) : s.name);
     }
   }
-  return names.sort((a, b) => a.localeCompare(b));
+  const buckets = new Map<string, string[]>();
+  for (const name of byKey.values()) {
+    const b = bucketOf(name);
+    const list = buckets.get(b) ?? [];
+    const i = list.findIndex((n) => sameStudent(n, name));
+    if (i >= 0) list[i] = pickCanonicalName(list[i], name);
+    else list.push(name);
+    buckets.set(b, list);
+  }
+  return [...buckets.values()].flat().sort((a, b) => a.localeCompare(b));
 }
 
 /** Case-insensitive partial match on any name token or the full name. */
@@ -85,8 +104,7 @@ export function getStudentRecords(
   const records: StudentRecord[] = [];
   for (const report of reports) {
     const idx = indexReport(report);
-    const { students } = combineReport(report.sessions);
-    const row = students.find(
+    const row = idx.students.find(
       (s) => !idx.hidden.has(nameKey(s.name)) && sameStudent(s.name, studentName),
     );
     if (!row) continue; // student never appears in this report
