@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -80,9 +80,10 @@ function StudentSearchPage() {
     [reports],
   );
 
+  const deferredQuery = useDeferredValue(query);
   const matches = useMemo(
-    () => filterStudentNames(allNames, query).slice(0, 12),
-    [allNames, query],
+    () => filterStudentNames(allNames, deferredQuery).slice(0, 12),
+    [allNames, deferredQuery],
   );
 
   const allRecords = useMemo(
