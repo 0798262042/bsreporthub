@@ -35,13 +35,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/student-search")({
   head: () => ({
     meta: [
-      { title: "Student Attendance Search — Attendra" },
+      { title: "Find a Student — Attendra" },
       {
         name: "description",
         content:
           "Search for a student and view their attendance history across all NMU Business School modules, sessions and reports.",
       },
-      { property: "og:title", content: "Student Attendance Search — Attendra" },
+      { property: "og:title", content: "Find a Student — Attendra" },
       {
         property: "og:description",
         content:
@@ -169,7 +169,7 @@ function StudentSearchPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Student Attendance Search
+              Find a Student
             </h1>
             <p className="text-sm text-muted-foreground">
               Find a student and view their attendance across every module and
@@ -179,7 +179,7 @@ function StudentSearchPage() {
         </div>
 
         {/* Search box */}
-        <div className="relative mt-8 max-w-xl">
+        <div className="relative mt-8 w-full max-w-3xl">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
