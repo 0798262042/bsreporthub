@@ -4,11 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity";
 
 type Role = "admin" | "user";
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "suspended";
 
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   role: Role | null;
+  approvalStatus: ApprovalStatus | null;
   isAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -19,13 +21,17 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<Role | null>(null);
+  const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Register listener FIRST, then check existing session
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      if (!s) setRole(null);
+      if (!s) {
+        setRole(null);
+        setApprovalStatus(null);
+      }
       if (event === "SIGNED_IN") {
         // Fire-and-forget audit log.
         void logActivity({ action: "user.login" });
@@ -42,11 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!session?.user) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id);
+      const [{ data }, { data: profile }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id),
+        supabase.from("profiles").select("approval_status, is_active").eq("id", session.user.id).maybeSingle(),
+      ]);
       if (cancelled) return;
+      const st = (profile?.approval_status as ApprovalStatus | undefined) ?? "pending";
+      setApprovalStatus(st === "approved" && profile?.is_active === false ? "suspended" : st);
       const roles = (data ?? []).map((r) => r.role as Role);
       setRole(roles.includes("admin") ? "admin" : roles.includes("user") ? "user" : "user");
     })();
@@ -59,8 +67,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     user: session?.user ?? null,
     role,
-    isAdmin: role === "admin",
-    loading,
+    approvalStatus,
+    isAdmin: role === "admin" && approvalStatus === "approved",
+    // Still loading until the account status is known for a signed-in user.
+    loading: loading || (!!session && approvalStatus === null),
     signOut: async () => {
       await supabase.auth.signOut();
     },

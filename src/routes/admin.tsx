@@ -39,6 +39,7 @@ import {
   Plus,
   Download,
 
+  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -113,6 +114,7 @@ import {
 import { ACTIVITY_LABELS, logActivity } from "@/lib/activity";
 import { listReports } from "@/lib/attendance/storage";
 import { exportAllReportsExcel } from "@/lib/attendance/export-all-excel";
+import { UserApprovals, usePendingCount } from "@/components/admin/UserApprovals";
 
 export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
@@ -162,8 +164,9 @@ type UserRow = Awaited<ReturnType<typeof listAllUsers>>[number];
 function AdminDashboard() {
   const { isAdmin, loading, session } = useAuth();
   const navigate = useNavigate();
+  const pendingCount = usePendingCount();
   const [tab, setTab] = useState<
-    "overview" | "users" | "programmes" | "activity" | "logs"
+    "overview" | "approvals" | "users" | "programmes" | "activity" | "logs"
   >("overview");
 
   useEffect(() => {
@@ -214,6 +217,14 @@ function AdminDashboard() {
             <TabsTrigger value="overview">
               <Layers className="h-4 w-4 mr-2" /> Overview
             </TabsTrigger>
+            <TabsTrigger value="approvals">
+              <UserCheck className="h-4 w-4 mr-2" /> User approvals
+              {pendingCount > 0 && (
+                <span className="ml-2 rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                  {pendingCount}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="users">
               <UserCog className="h-4 w-4 mr-2" /> User management
             </TabsTrigger>
@@ -230,6 +241,9 @@ function AdminDashboard() {
 
           <TabsContent value="overview" className="mt-6">
             <OverviewTab />
+          </TabsContent>
+          <TabsContent value="approvals" className="mt-6">
+            <UserApprovals />
           </TabsContent>
           <TabsContent value="users" className="mt-6">
             <UserManagement />

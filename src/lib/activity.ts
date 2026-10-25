@@ -11,6 +11,9 @@ export type ActivityAction =
   | "user.deactivated"
   | "user.role_granted"
   | "user.role_revoked"
+  | "user.approved"
+  | "user.rejected"
+  | "user.suspended"
   | "spreadsheet.uploaded"
   | "spreadsheet.override_upload"
   | "report.created"
@@ -22,6 +25,9 @@ export type ActivityAction =
   | "session.deleted";
 
 export const ACTIVITY_LABELS: Record<string, string> = {
+  "user.approved": "Registration approved",
+  "user.rejected": "Registration rejected",
+  "user.suspended": "Account suspended",
   "user.login": "User signed in",
   "user.logout": "User signed out",
   "user.created": "User account created",

@@ -14,6 +14,8 @@ async function assertAdmin(ctx: {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: admin only");
+  const { data: ok } = await ctx.supabase.rpc("is_approved", { _user_id: ctx.userId });
+  if (!ok) throw new Error("Forbidden: account not approved");
 }
 
 export const listAllUsers = createServerFn({ method: "GET" })
@@ -25,7 +27,7 @@ export const listAllUsers = createServerFn({ method: "GET" })
     const [profilesRes, rolesRes, authRes] = await Promise.all([
       supabaseAdmin
         .from("profiles")
-        .select("id, first_name, last_name, email, phone, department, created_at, is_active")
+        .select("id, first_name, last_name, email, phone, department, created_at, is_active, approval_status, approved_by, approved_at, rejection_reason")
         .order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("user_id, role"),
       supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
@@ -62,6 +64,10 @@ export const listAllUsers = createServerFn({ method: "GET" })
       last_sign_in_at: lastSignInByUser.get(p.id) ?? null,
       is_active:
         (p as { is_active?: boolean }).is_active !== false && !bannedByUser.get(p.id),
+      approval_status: p.approval_status as ApprovalStatus,
+      approved_by: p.approved_by,
+      approved_at: p.approved_at,
+      rejection_reason: p.rejection_reason,
     }));
   });
 
@@ -162,6 +168,18 @@ export const createUserAccount = createServerFn({ method: "POST" })
     });
     if (created.error) throw new Error(created.error.message);
     const newId = created.data.user?.id;
+    if (newId) {
+      // Accounts created directly by an administrator are pre-approved.
+      await supabaseAdmin
+        .from("profiles")
+        .update({
+          approval_status: "approved",
+          approved_by: context.userId,
+          approved_at: new Date().toISOString(),
+          status_changed_at: new Date().toISOString(),
+        })
+        .eq("id", newId);
+    }
     if (newId && data.makeAdmin) {
       await supabaseAdmin
         .from("user_roles")
@@ -235,8 +253,53 @@ export const setUserActive = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     await supabaseAdmin
       .from("profiles")
-      .update({ is_active: data.active })
+      .update({
+        is_active: data.active,
+        approval_status: data.active ? "approved" : "suspended",
+        status_changed_at: new Date().toISOString(),
+        ...(data.active ? { approved_by: context.userId, approved_at: new Date().toISOString() } : {}),
+      })
       .eq("id", data.userId);
+    return { ok: true };
+  });
+
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "suspended";
+
+export const setApprovalStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        status: z.enum(["approved", "rejected", "suspended"]),
+        reason: z.string().trim().max(500).optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    if (data.userId === context.userId) {
+      throw new Error("You cannot change the approval status of your own account.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    const approved = data.status === "approved";
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        approval_status: data.status,
+        is_active: approved,
+        status_changed_at: now,
+        rejection_reason: data.status === "rejected" ? data.reason || null : null,
+        ...(approved ? { approved_by: context.userId, approved_at: now } : {}),
+      })
+      .eq("id", data.userId);
+    if (error) throw new Error(error.message);
+    // Access is enforced by database rules; users may still sign in to see their status.
+    // Lift any legacy sign-in ban when an account is approved.
+    if (approved) {
+      await supabaseAdmin.auth.admin.updateUserById(data.userId, { ban_duration: "none" } as never);
+    }
     return { ok: true };
   });
 

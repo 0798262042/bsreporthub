@@ -18,6 +18,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Footer } from "@/components/Footer";
+import { AccountStatusScreen } from "@/components/AccountStatusScreen";
 
 function NotFoundComponent() {
   return (
@@ -146,9 +147,11 @@ function RootComponent() {
 }
 
 const PUBLIC_ROUTES = ["/", "/auth", "/forgot-password", "/reset-password"];
+// Routes a signed-in but not-yet-approved user may still use.
+const AUTH_FLOW_ROUTES = ["/reset-password"];
 
 function AuthGate() {
-  const { session, loading } = useAuth();
+  const { session, loading, approvalStatus } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const isPublic = PUBLIC_ROUTES.includes(pathname);
@@ -174,6 +177,10 @@ function AuthGate() {
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (session && approvalStatus && approvalStatus !== "approved" && !AUTH_FLOW_ROUTES.includes(pathname)) {
+    return <AccountStatusScreen status={approvalStatus} />;
   }
 
   return (
