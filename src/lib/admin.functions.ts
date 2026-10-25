@@ -295,10 +295,11 @@ export const setApprovalStatus = createServerFn({ method: "POST" })
       })
       .eq("id", data.userId);
     if (error) throw new Error(error.message);
-    // Block / unblock sign-in sessions for suspended or rejected users.
-    await supabaseAdmin.auth.admin.updateUserById(data.userId, {
-      ban_duration: approved ? "none" : "876000h",
-    } as never);
+    // Access is enforced by database rules; users may still sign in to see their status.
+    // Lift any legacy sign-in ban when an account is approved.
+    if (approved) {
+      await supabaseAdmin.auth.admin.updateUserById(data.userId, { ban_duration: "none" } as never);
+    }
     return { ok: true };
   });
 
