@@ -157,7 +157,6 @@ function SignUpForm() {
       toast.error(error.message);
       return;
     }
-    if (!consent) return;
     toast.success(
       "Registration successful! Your account is awaiting administrator approval. You will be able to access Attendra once your account has been approved.",
       { duration: 10000 },
