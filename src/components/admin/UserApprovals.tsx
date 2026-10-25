@@ -29,7 +29,7 @@ import {
 type UserRow = Awaited<ReturnType<typeof listAllUsers>>[number];
 
 const STATUS_META: Record<ApprovalStatus, { label: string; cls: string; Icon: typeof Clock }> = {
-  pending: { label: "Pending Approval", cls: "bg-warning/15 text-warning-foreground border border-warning/40", Icon: Clock },
+  pending: { label: "Pending Approval", cls: "bg-warning/20 text-foreground border border-warning/50", Icon: Clock },
   approved: { label: "Approved", cls: "bg-success/15 text-success", Icon: CheckCircle2 },
   rejected: { label: "Rejected", cls: "bg-destructive/15 text-destructive", Icon: XCircle },
   suspended: { label: "Suspended", cls: "bg-muted text-muted-foreground", Icon: Ban },

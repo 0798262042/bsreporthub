@@ -71,6 +71,10 @@ function SignInForm() {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
     if (error) {
+      if (/banned/i.test(error.message)) {
+        toast.error("Your account has been suspended. Please contact the system administrator for assistance.");
+        return;
+      }
       toast.error(error.message.includes("Invalid") ? "Invalid email or password." : error.message);
       return;
     }
@@ -119,10 +123,15 @@ function SignUpForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!consent) {
+      toast.error("Please acknowledge the privacy notice to register.");
+      return;
+    }
     if (password.length < 8) {
       toast.error("Password must be at least 8 characters.");
       return;
@@ -148,7 +157,11 @@ function SignUpForm() {
       toast.error(error.message);
       return;
     }
-    toast.success("Account created. You are signed in.");
+    if (!consent) return;
+    toast.success(
+      "Registration successful! Your account is awaiting administrator approval. You will be able to access Attendra once your account has been approved.",
+      { duration: 10000 },
+    );
     navigate({ to: "/", replace: true });
   }
 
@@ -175,6 +188,19 @@ function SignUpForm() {
       <div className="space-y-1.5">
         <Label htmlFor="su-pw2">Confirm password</Label>
         <PasswordInput id="su-pw2" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+      </div>
+      <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+        <p className="font-semibold text-foreground">Privacy notice (POPIA)</p>
+        <p className="mt-1">
+          NMU Business School collects your name and email address only to verify your identity,
+          let an administrator approve your access, and keep an audit trail of activity in Attendra.
+          Your details are visible only to authorised administrators and are not shared with third
+          parties. Rejected or unused registrations are removed in line with NMU retention policy.
+        </p>
+        <label className="mt-2 flex items-start gap-2 text-foreground">
+          <Checkbox checked={consent} onCheckedChange={(v) => setConsent(!!v)} className="mt-0.5" />
+          I have read and understand this notice.
+        </label>
       </div>
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create account"}
