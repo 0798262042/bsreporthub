@@ -55,6 +55,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           department: string | null
           email: string
@@ -63,9 +66,14 @@ export type Database = {
           is_active: boolean
           last_name: string
           phone: string | null
+          rejection_reason: string | null
+          status_changed_at: string | null
           updated_at: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           department?: string | null
           email?: string
@@ -74,9 +82,14 @@ export type Database = {
           is_active?: boolean
           last_name?: string
           phone?: string | null
+          rejection_reason?: string | null
+          status_changed_at?: string | null
           updated_at?: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           department?: string | null
           email?: string
@@ -85,6 +98,8 @@ export type Database = {
           is_active?: boolean
           last_name?: string
           phone?: string | null
+          rejection_reason?: string | null
+          status_changed_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -242,6 +257,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
