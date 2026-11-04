@@ -156,3 +156,63 @@ export function summarizeStudent(
     lastAttended: last,
   };
 }
+
+/** Aggregate once, rather than rebuilding every student's full record history. */
+export async function getTopStudents(reports: Report[]): Promise<StudentSummary[]> {
+  type Totals = { name: string; sessions: Set<string>; attended: Set<string>; last: string | null };
+  const byName = new Map<string, Totals>();
+  const sessionIds = new Map<string, string>();
+  const sessionContent = new Map<string, string>();
+  for (const report of reports) {
+    const idx = indexReport(report);
+    const sessions = new Map(idx.sessions.map((s) => {
+      // Reimported sessions may have new IDs or duplicate attendee entries.
+      const content = JSON.stringify([s.date, s.topic.trim().toLowerCase().replace(/\s+/g, " "), s.startTime, s.endTime]);
+      const key = sessionIds.get(s.id) ?? sessionContent.get(content) ?? s.id;
+      sessionIds.set(s.id, key);
+      sessionContent.set(content, key);
+      return [s.id, { key, date: s.date }] as const;
+    }));
+    for (const row of idx.students) {
+      const key = nameKey(row.name);
+      if (!key || idx.hidden.has(key)) continue;
+      const totals = byName.get(key) ?? { name: row.name, sessions: new Set<string>(), attended: new Set<string>(), last: null };
+      totals.name = pickCanonicalName(totals.name, row.name);
+      for (const slot of row.perSession) {
+        const s = sessions.get(slot.sessionId);
+        if (!s) continue;
+        totals.sessions.add(s.key);
+        if (slot.join) {
+          totals.attended.add(s.key);
+          if (!totals.last || s.date > totals.last) totals.last = s.date;
+        }
+      }
+      byName.set(key, totals);
+    }
+    // Let the input respond while larger repositories are processed.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+  const students: Totals[] = [];
+  let processed = 0;
+  for (const totals of byName.values()) {
+    const existing = students.find((s) => sameStudent(s.name, totals.name));
+    if (existing) {
+      existing.name = pickCanonicalName(existing.name, totals.name);
+      for (const key of totals.sessions) existing.sessions.add(key);
+      for (const key of totals.attended) existing.attended.add(key);
+      if (totals.last && (!existing.last || totals.last > existing.last)) existing.last = totals.last;
+    } else students.push(totals);
+    if (++processed % 25 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+  return students
+    .filter((s) => s.attended.size > 0)
+    .sort((a, b) => b.attended.size - a.attended.size || a.name.localeCompare(b.name))
+    .slice(0, 5)
+    .map((s) => ({
+      name: s.name,
+      totalSessions: s.sessions.size,
+      attended: s.attended.size,
+      avgPct: s.sessions.size ? Math.round(s.attended.size / s.sessions.size * 1000) / 10 : null,
+      lastAttended: s.last,
+    }));
+}

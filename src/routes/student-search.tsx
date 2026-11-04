@@ -7,6 +7,7 @@ import {
   FileSpreadsheet,
   GraduationCap,
   Search,
+  Trophy,
   UserRound,
   XCircle,
 } from "lucide-react";
@@ -23,8 +24,10 @@ import {
   collectStudentNames,
   filterStudentNames,
   getStudentRecords,
+  getTopStudents,
   summarizeStudent,
   type StudentRecord,
+  type StudentSummary,
 } from "@/lib/attendance/student-search";
 import {
   exportStudentExcel,
@@ -59,6 +62,7 @@ function StudentSearchPage() {
   const [reports, setReports] = useState<Report[] | null>(null);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [topStudents, setTopStudents] = useState<StudentSummary[] | null>(null);
 
   // Filters
   const [startDate, setStartDate] = useState("");
@@ -70,10 +74,35 @@ function StudentSearchPage() {
 
   useEffect(() => {
     if (!session) return;
-    listReports()
-      .then(setReports)
-      .catch(() => setReports([]));
+    let active = true;
+    let request = 0;
+    const refresh = () => {
+      const current = ++request;
+      listReports().then((data) => {
+        if (active && current === request) setReports(data);
+      }).catch(() => {
+        if (active && current === request) setReports([]);
+      });
+    };
+    refresh();
+    window.addEventListener("nmu-reports-changed", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      active = false;
+      window.removeEventListener("nmu-reports-changed", refresh);
+      window.removeEventListener("focus", refresh);
+    };
   }, [session]);
+
+  useEffect(() => {
+    if (!reports) return;
+    let active = true;
+    setTopStudents(null);
+    getTopStudents(reports).then((students) => {
+      if (active) setTopStudents(students);
+    });
+    return () => { active = false; };
+  }, [reports]);
 
   const allNames = useMemo(
     () => (reports ? collectStudentNames(reports) : []),
@@ -183,7 +212,11 @@ function StudentSearchPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelected(null);
+              clearFilters();
+            }}
             placeholder="Search student by full name..."
             className="pl-9"
           />
@@ -213,10 +246,31 @@ function StudentSearchPage() {
           )}
         </div>
 
-        {!selected && (
-          <p className="mt-6 text-sm text-muted-foreground">
-            Type a name above to search across all uploaded reports.
-          </p>
+        {!selected && !query.trim() && (
+          <section className="mt-6 w-full max-w-3xl" aria-labelledby="top-students-heading" aria-busy={topStudents === null}>
+            <h2 id="top-students-heading" className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <Trophy className="h-5 w-5 shrink-0 text-primary" />
+              Top 5 Most Attending Students
+            </h2>
+            {topStudents === null ? (
+              <p className="mt-4 text-sm text-muted-foreground" role="status">Loading attendance rankings…</p>
+            ) : topStudents.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">No student attendance records available yet.</p>
+            ) : (
+              <ol className="mt-4 divide-y divide-border border-y border-border">
+                {topStudents.map((student, index) => (
+                  <li key={student.name} className="flex items-center gap-3 py-4 sm:gap-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{index + 1}</span>
+                    <span className="min-w-0 flex-1 break-words text-sm font-medium text-foreground">{student.name}</span>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold tabular-nums text-foreground">{student.attended} {student.attended === 1 ? "session" : "sessions"}</p>
+                      {student.avgPct !== null && <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">{student.avgPct}% attendance</p>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
         )}
 
         {selected && summary && (
@@ -227,12 +281,13 @@ function StudentSearchPage() {
                 <h2 className="text-xl font-semibold text-foreground">
                   {summary.name}
                 </h2>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="mt-1 text-sm font-medium text-primary hover:underline"
+                <Button
+                  variant="link"
+                  onClick={() => { setSelected(null); setQuery(""); clearFilters(); }}
+                  className="mt-1 h-auto p-0 text-sm font-medium text-primary hover:underline"
                 >
                   ← Search for another student
-                </button>
+                </Button>
               </div>
               <div className="flex gap-2">
                 <Button
