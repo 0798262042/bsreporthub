@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Landing } from "@/components/Landing";
 
 export const Route = createFileRoute("/")({
+  head: () => ({ meta: [{title: "Attendra — Business School Attendance Reports"},{name:"description",content:"Create and manage Business School attendance reports with Attendra."},{property:"og:title",content:"Attendra — Business School Attendance Reports"},{property:"og:description",content:"Create and manage Business School attendance reports with Attendra."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}] }),
   component: Index,
 });
 

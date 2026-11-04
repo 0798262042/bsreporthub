@@ -18,6 +18,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Footer } from "@/components/Footer";
+import { SettingsProvider } from "@/components/system/SettingsProvider";
+import { SystemNotices } from "@/components/system/SystemNotices";
 import { AccountStatusScreen } from "@/components/AccountStatusScreen";
 
 function NotFoundComponent() {
@@ -102,8 +104,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Business School Attendance Report Generator" },
       { name: "twitter:description", content: "Upload Zoom attendance exports and instantly generate clean, combined attendance reports with percentages, Excel and PDF exports." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/P6ss7187phbjy0KwNQBM3XSdSfT2/social-images/social-1783595726502-ChatGPT_Image_Jul_9,_2026,_01_06_54_PM.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/P6ss7187phbjy0KwNQBM3XSdSfT2/social-images/social-1783595726502-ChatGPT_Image_Jul_9,_2026,_01_06_54_PM.webp" },
     ],
     links: [
       {
@@ -139,7 +139,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AuthGate />
+        <SettingsProvider><AuthGate /></SettingsProvider>
         <Toaster richColors position="top-right" />
       </AuthProvider>
     </QueryClientProvider>
@@ -185,6 +185,7 @@ function AuthGate() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <SystemNotices />
       <div className="flex-1">
         <Outlet />
       </div>

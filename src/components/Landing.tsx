@@ -15,6 +15,9 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSiteSettings } from "@/components/system/SettingsProvider";
+import { BrandMark } from "@/components/system/BrandMark";
+import { mediaUrl } from "@/lib/system/settings";
 
 const features = [
   {
@@ -74,7 +77,9 @@ const steps = [
   { icon: FileText, title: "Generate Report", desc: "Download polished PDF or Excel." },
 ];
 
-export function Landing() {
+export function Landing({ previewMedia = {} }: { previewMedia?: Record<string,string> }) {
+  const settings = useSiteSettings();
+  const page = settings.landing;
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Decorative background */}
@@ -95,10 +100,8 @@ export function Landing() {
       <header className="relative z-20">
         <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[image:var(--gradient-brand)] text-white shadow-[var(--shadow-card)]">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-foreground">Attendra</span>
+            <BrandMark location="landing" />
+            <span className="text-xl font-bold text-foreground">{settings.brand.name}</span>
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
             <a href="#features" className="text-sm font-medium text-foreground/70 hover:text-primary transition-colors">
@@ -128,25 +131,23 @@ export function Landing() {
 
       {/* Hero */}
       <section className="relative z-10">
-        <div className="mx-auto grid w-full max-w-[1400px] gap-12 px-4 pb-20 pt-10 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8 lg:pt-16">
+        {page.image && <img src={previewMedia[page.image] || mediaUrl(page.image)} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+        <div className="relative mx-auto grid w-full max-w-[1400px] gap-12 px-4 pb-20 pt-10 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8 lg:pt-16">
           <div className="flex flex-col justify-center">
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3 py-1 text-xs font-semibold text-primary backdrop-blur">
               <Sparkles className="h-3.5 w-3.5" />
-              NMU Business School
+              {page.tagline}
             </div>
             <h1 className="mt-5 text-5xl font-black tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-              Attendra
+              {page.heading}
             </h1>
             <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               <span className="bg-[image:var(--gradient-brand)] bg-clip-text text-transparent">
-                Business School Attendance Report
+                {page.subtitle}
               </span>
             </p>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Effortlessly transform attendance spreadsheets into accurate, professional reports. Simply
-              upload your Excel file and let Attendra automatically clean the data, merge duplicate records,
-              generate meaningful attendance insights, and produce beautifully formatted PDF and Excel
-              reports in seconds.
+              {page.description}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button
@@ -154,9 +155,9 @@ export function Landing() {
                 size="lg"
                 className="rounded-full px-7 shadow-[var(--shadow-elevated)]"
               >
-                <Link to="/auth">
-                  Get Started <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
+                <a href={page.ctaUrl || "/auth"}>
+                  {page.cta} <ArrowRight className="ml-1 h-4 w-4" />
+                </a>
               </Button>
               <Button
                 asChild
@@ -258,19 +259,19 @@ export function Landing() {
       </section>
 
       {/* Features */}
-      <section id="features" className="relative z-10 bg-card/60 py-20 backdrop-blur">
+      {page.showFeatures && <section id="features" className="relative z-10 bg-card/60 py-20 backdrop-blur">
         <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Powerful features
+              {page.featuresTitle}
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Everything you need to move from raw Zoom exports to publication-ready reports.
+              {page.featuresDescription}
             </p>
           </div>
 
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map(({ icon: Icon, title, desc, tint }) => (
+            {page.features.map(({ title, desc }, i) => { const {icon: Icon, tint} = features[i % features.length]; return (
               <div
                 key={title}
                 className="group rounded-2xl border border-border bg-background p-6 shadow-[var(--shadow-card)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)]"
@@ -283,23 +284,23 @@ export function Landing() {
                 <p className="mt-4 text-base font-semibold text-foreground">{title}</p>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{desc}</p>
               </div>
-            ))}
+            );})}
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* How it works */}
-      <section id="how" className="relative z-10 py-20">
+      {page.showHow && <section id="how" className="relative z-10 py-20">
         <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">How it works</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{page.howTitle}</h2>
             <p className="mt-3 text-muted-foreground">
-              From spreadsheet to signed-off report in four simple steps.
+              {page.howDescription}
             </p>
           </div>
 
           <ol className="mt-12 grid gap-5 md:grid-cols-4">
-            {steps.map(({ icon: Icon, title, desc }, i) => (
+            {page.steps.map(({ title, desc }, i) => { const Icon = steps[i % steps.length].icon; return (
               <li key={title} className="relative">
                 <div className="h-full rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
                   <div className="flex items-center gap-3">
@@ -311,17 +312,17 @@ export function Landing() {
                   <p className="mt-4 text-base font-semibold text-foreground">{title}</p>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{desc}</p>
                 </div>
-                {i < steps.length - 1 && (
+                {i < page.steps.length - 1 && (
                   <ArrowRight className="absolute -right-3 top-1/2 hidden h-5 w-5 -translate-y-1/2 text-primary/50 md:block" />
                 )}
               </li>
-            ))}
+            );})}
           </ol>
         </div>
-      </section>
+      </section>}
 
       {/* About / CTA */}
-      <section id="about" className="relative z-10 pb-24">
+      {page.showAbout && <section id="about" className="relative z-10 pb-24">
         <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8">
           <div className="relative overflow-hidden rounded-3xl border border-border bg-[image:var(--gradient-brand)] p-10 text-white shadow-[var(--shadow-elevated)] sm:p-14">
             <div
@@ -334,11 +335,10 @@ export function Landing() {
                   <ShieldCheck className="h-3.5 w-3.5" /> Built for Faculty & Administration
                 </div>
                 <h3 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-                  Ready to modernise your attendance workflow?
+                  {page.aboutTitle}
                 </h3>
                 <p className="mt-3 max-w-lg text-white/85">
-                  Join NMU Business School staff already using Attendra to save hours every week and deliver
-                  clean, professional reports on demand.
+                  {page.aboutDescription}
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Button
@@ -346,9 +346,9 @@ export function Landing() {
                     size="lg"
                     className="rounded-full bg-[color:var(--gold)] px-7 text-[color:var(--gold-ink)] hover:bg-[color:var(--gold)]/90"
                   >
-                    <Link to="/auth">
-                      Get Started <ArrowRight className="ml-1 h-4 w-4" />
-                    </Link>
+                    <a href={page.ctaUrl || "/auth"}>
+                      {page.cta} <ArrowRight className="ml-1 h-4 w-4" />
+                    </a>
                   </Button>
                   <Button
                     asChild
@@ -381,7 +381,8 @@ export function Landing() {
             </div>
           </div>
         </div>
-      </section>
+      </section>}
+      {(settings.content.about || settings.content.privacy || settings.content.popia || settings.content.terms || settings.content.faq.length > 0) && <section className="mx-auto max-w-[1400px] space-y-6 px-4 py-12 sm:px-6 lg:px-8">{[["About Attendra",settings.content.about],["Privacy notice",settings.content.privacy],["POPIA",settings.content.popia],["Terms and conditions",settings.content.terms]].filter(([,v])=>v).map(([title,value])=><details key={title} className="border-b border-border pb-4"><summary className="cursor-pointer font-semibold text-foreground">{title}</summary><p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{value}</p></details>)}{settings.content.faq.map((q,i)=><details key={i} className="border-b border-border pb-4"><summary className="cursor-pointer font-semibold text-foreground">{q.title}</summary><p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{q.desc}</p></details>)}</section>}
     </div>
   );
 }

@@ -8,6 +8,20 @@
       "when": 1792918736021,
       "tag": "0000_user_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793800602921,
+      "tag": "0001_system_management",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793800794653,
+      "tag": "0002_restrict_system_management_grants",
+      "breakpoints": true
     }
   ]
 }

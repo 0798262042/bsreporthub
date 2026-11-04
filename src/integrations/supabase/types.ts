@@ -223,6 +223,72 @@ export type Database = {
           },
         ]
       }
+      site_drafts: {
+        Row: {
+          content: Json
+          id: string
+          revision: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content?: Json
+          id?: string
+          revision?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json
+          id?: string
+          revision?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          content: Json
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content?: Json
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      site_versions: {
+        Row: {
+          content: Json
+          id: string
+          published_at: string
+          published_by: string | null
+        }
+        Insert: {
+          content: Json
+          id?: string
+          published_at?: string
+          published_by?: string | null
+        }
+        Update: {
+          content?: Json
+          id?: string
+          published_at?: string
+          published_by?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -258,6 +324,10 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      manage_site_content: {
+        Args: { _action: string; _content: Json; _revision: number }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "admin" | "user"

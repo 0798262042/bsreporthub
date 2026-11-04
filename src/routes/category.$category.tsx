@@ -54,6 +54,7 @@ import { rejectWithFix } from "@/lib/reject-toast";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/category/$category")({
+  head: () => ({ meta: [{title: "Programme Reports — Attendra"},{name:"description",content:"Browse module and lecturer attendance reports by programme."},{property:"og:title",content:"Programme Reports — Attendra"},{property:"og:description",content:"Browse module and lecturer attendance reports by programme."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}] }),
   component: CategoryPage,
 });
 

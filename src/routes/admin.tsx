@@ -114,9 +114,12 @@ import {
 import { ACTIVITY_LABELS, logActivity } from "@/lib/activity";
 import { listReports } from "@/lib/attendance/storage";
 import { exportAllReportsExcel } from "@/lib/attendance/export-all-excel";
+import { SystemManagement } from "@/components/system/SystemManagement";
+import { Settings2 } from "lucide-react";
 import { UserApprovals, usePendingCount } from "@/components/admin/UserApprovals";
 
 export const Route = createFileRoute("/admin")({
+  head: () => ({ meta: [{title:"Admin Dashboard — Attendra"},{name:"description",content:"Manage Attendra users, approvals, programmes and website settings."},{property:"og:title",content:"Admin Dashboard — Attendra"},{property:"og:description",content:"Attendra administration and System Management."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}] }),
   component: AdminDashboard,
 });
 
@@ -166,7 +169,7 @@ function AdminDashboard() {
   const navigate = useNavigate();
   const pendingCount = usePendingCount();
   const [tab, setTab] = useState<
-    "overview" | "approvals" | "users" | "programmes" | "activity" | "logs"
+    "overview" | "approvals" | "users" | "programmes" | "activity" | "logs" | "system"
   >("overview");
 
   useEffect(() => {
@@ -213,7 +216,7 @@ function AdminDashboard() {
 
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="mt-8">
-          <TabsList>
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-1">
             <TabsTrigger value="overview">
               <Layers className="h-4 w-4 mr-2" /> Overview
             </TabsTrigger>
@@ -234,11 +237,13 @@ function AdminDashboard() {
             <TabsTrigger value="activity">
               <Activity className="h-4 w-4 mr-2" /> Recent activity
             </TabsTrigger>
+            <TabsTrigger value="system"><Settings2 className="h-4 w-4 mr-2" /> System Management</TabsTrigger>
             <TabsTrigger value="logs">
               <ScrollText className="h-4 w-4 mr-2" /> Activity logs
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="system" className="mt-6"><SystemManagement /></TabsContent>
           <TabsContent value="overview" className="mt-6">
             <OverviewTab />
           </TabsContent>

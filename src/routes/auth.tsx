@@ -10,15 +10,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { BrandMark } from "@/components/system/BrandMark";
+import { useSiteSettings } from "@/components/system/SettingsProvider";
 import { AuthBackground, authCardClass } from "@/components/AuthBackground";
 
 export const Route = createFileRoute("/auth")({
+  head: () => ({ meta: [{title: "Sign in — Attendra"},{name:"description",content:"Sign in or register for approved access to Attendra attendance reports."},{property:"og:title",content:"Sign in — Attendra"},{property:"og:description",content:"Sign in or register for approved access to Attendra attendance reports."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}] }),
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
   const { session, loading } = useAuth();
+  const settings = useSiteSettings();
 
   useEffect(() => {
     if (!loading && session) {
@@ -30,12 +34,10 @@ function AuthPage() {
     <AuthBackground>
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[image:var(--gradient-brand)] text-white shadow-[var(--shadow-card)]">
-            <GraduationCap className="h-5 w-5" />
-          </div>
+          <BrandMark location="auth" />
           <div className="leading-tight text-left">
-            <p className="text-[10px] uppercase tracking-widest text-white/80">NMU Business School</p>
-            <p className="text-sm font-semibold text-white">Attendance Report Generator</p>
+            <p className="text-[10px] uppercase tracking-widest text-white/80">{settings.brand.organisation}</p>
+            <p className="text-sm font-semibold text-white">{settings.content.description}</p>
           </div>
         </Link>
 
@@ -117,6 +119,7 @@ function SignInForm() {
 }
 
 function SignUpForm() {
+  const settings = useSiteSettings();
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -191,11 +194,10 @@ function SignUpForm() {
       <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
         <p className="font-semibold text-foreground">Privacy notice (POPIA)</p>
         <p className="mt-1">
-          NMU Business School collects your name and email address only to verify your identity,
-          let an administrator approve your access, and keep an audit trail of activity in Attendra.
-          Your details are visible only to authorised administrators and are not shared with third
-          parties. Rejected or unused registrations are removed in line with NMU retention policy.
+          {settings.content.privacy}
         </p>
+        {settings.content.popia && <p className="mt-2">{settings.content.popia}</p>}
+        {settings.content.terms && <details className="mt-2"><summary>Terms and conditions</summary><p>{settings.content.terms}</p></details>}
         <label className="mt-2 flex items-start gap-2 text-foreground">
           <Checkbox checked={consent} onCheckedChange={(v) => setConsent(!!v)} className="mt-0.5" />
           I have read and understand this notice.

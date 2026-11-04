@@ -17,6 +17,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as StudentSearchRouteImport } from './routes/student-search'
 import { Route as CategoryCategoryRouteImport } from './routes/category.$category'
 import { Route as ReportIdRouteImport } from './routes/report.$id'
+import { Route as ApiPublicSiteMediaRouteImport } from './routes/api/public/site-media'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const ReportIdRoute = ReportIdRouteImport.update({
   path: '/report/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSiteMediaRoute = ApiPublicSiteMediaRouteImport.update({
+  id: '/api/public/site-media',
+  path: '/api/public/site-media',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/student-search': typeof StudentSearchRoute
   '/category/$category': typeof CategoryCategoryRoute
   '/report/$id': typeof ReportIdRoute
+  '/api/public/site-media': typeof ApiPublicSiteMediaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/student-search': typeof StudentSearchRoute
   '/category/$category': typeof CategoryCategoryRoute
   '/report/$id': typeof ReportIdRoute
+  '/api/public/site-media': typeof ApiPublicSiteMediaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/student-search': typeof StudentSearchRoute
   '/category/$category': typeof CategoryCategoryRoute
   '/report/$id': typeof ReportIdRoute
+  '/api/public/site-media': typeof ApiPublicSiteMediaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/student-search'
     | '/category/$category'
     | '/report/$id'
+    | '/api/public/site-media'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/student-search'
     | '/category/$category'
     | '/report/$id'
+    | '/api/public/site-media'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/student-search'
     | '/category/$category'
     | '/report/$id'
+    | '/api/public/site-media'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   StudentSearchRoute: typeof StudentSearchRoute
   CategoryCategoryRoute: typeof CategoryCategoryRoute
   ReportIdRoute: typeof ReportIdRoute
+  ApiPublicSiteMediaRoute: typeof ApiPublicSiteMediaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/site-media': {
+      id: '/api/public/site-media'
+      path: '/api/public/site-media'
+      fullPath: '/api/public/site-media'
+      preLoaderRoute: typeof ApiPublicSiteMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudentSearchRoute: StudentSearchRoute,
   CategoryCategoryRoute: CategoryCategoryRoute,
   ReportIdRoute: ReportIdRoute,
+  ApiPublicSiteMediaRoute: ApiPublicSiteMediaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { AuthBackground, authCardClass } from "@/components/AuthBackground";
 
 export const Route = createFileRoute("/forgot-password")({
+  head: () => ({ meta: [{title: "Forgot Password — Attendra"},{name:"description",content:"Request a password reset link for your Attendra account."},{property:"og:title",content:"Forgot Password — Attendra"},{property:"og:description",content:"Request a password reset link for your Attendra account."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}] }),
   component: ForgotPasswordPage,
 });
 
