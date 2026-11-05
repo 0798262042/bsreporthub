@@ -18,8 +18,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Footer } from "@/components/Footer";
-import { SettingsProvider } from "@/components/system/SettingsProvider";
+import { SettingsProvider, publishedSettingsQuery } from "@/components/system/SettingsProvider";
 import { SystemNotices } from "@/components/system/SystemNotices";
+import { mediaUrl } from "@/lib/system/settings";
 import { AccountStatusScreen } from "@/components/AccountStatusScreen";
 
 function NotFoundComponent() {
@@ -83,7 +84,10 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  // Load published settings before first paint so the old theme never flashes.
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(publishedSettingsQuery).catch(() => undefined),
+  head: ({ loaderData }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -111,6 +115,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      ...(loaderData?.landing.image
+        ? [{ rel: "preload", as: "image", href: mediaUrl(loaderData.landing.image), fetchPriority: "high" as const }]
+        : []),
     ],
   }),
   shellComponent: RootShell,
@@ -135,11 +142,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const initialSettings = Route.useLoaderData();
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SettingsProvider><AuthGate /></SettingsProvider>
+        <SettingsProvider initial={initialSettings}><AuthGate /></SettingsProvider>
         <Toaster richColors position="top-right" />
       </AuthProvider>
     </QueryClientProvider>

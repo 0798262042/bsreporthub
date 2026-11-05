@@ -21,13 +21,28 @@ export function SettingsPreview({
     </Context.Provider>
   );
 }
-export function SettingsProvider({ children }: { children: ReactNode }) {
+export const publishedSettingsQuery = {
+  queryKey: ["published-settings"],
+  queryFn: () => getPublishedSettings(),
+  staleTime: 60000,
+};
+/** CSS for published theme tokens, rendered during SSR so the first paint already uses them. */
+function themeCss(s: SiteSettings) {
+  const vars: string[] = [];
+  const add = (k: string, v: string) => vars.push(`--${k}:${v}`);
+  const primary = s.theme.button || s.theme.primary;
+  if (primary) { add("primary", primary); add("primary-foreground", contrastText(primary)); }
+  if (s.theme.secondary) { add("secondary", s.theme.secondary); add("secondary-foreground", contrastText(s.theme.secondary)); }
+  if (s.theme.background) { add("background", s.theme.background); add("foreground", contrastText(s.theme.background)); }
+  if (s.theme.primary) { add("gradient-brand", `linear-gradient(135deg, ${s.theme.primary}, ${s.theme.primary})`); add("ring", s.theme.primary); }
+  return vars.length ? `:root{${vars.join(";").replace(/[<>{}]/g, "")}}` : "";
+}
+export function SettingsProvider({ children, initial }: { children: ReactNode; initial?: SiteSettings }) {
   const qc = useQueryClient();
-  const { data = defaults } = useQuery({
-    queryKey: ["published-settings"],
-    queryFn: () => getPublishedSettings(),
+  const { data = initial ?? defaults } = useQuery({
+    ...publishedSettingsQuery,
+    initialData: initial,
     refetchInterval: 60000,
-    staleTime: 60000,
   });
   useEffect(() => {
     const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel("attendra-branding");
@@ -76,5 +91,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       document.head.append(icon);
     }
   }, [data]);
-  return <Context.Provider value={data}>{children}</Context.Provider>;
+  const css = themeCss(data);
+  return (
+    <Context.Provider value={data}>
+      {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
+      {children}
+    </Context.Provider>
+  );
 }

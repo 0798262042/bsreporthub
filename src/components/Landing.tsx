@@ -131,7 +131,7 @@ export function Landing({ previewMedia = {} }: { previewMedia?: Record<string,st
 
       {/* Hero */}
       <section className="relative z-10">
-        {page.image && <img src={previewMedia[page.image] || mediaUrl(page.image)} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+        {page.image && <img src={previewMedia[page.image] || mediaUrl(page.image)} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" />}
         <div className="relative mx-auto grid w-full max-w-[1400px] gap-12 px-4 pb-20 pt-10 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8 lg:pt-16">
           <div className="flex flex-col justify-center">
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3 py-1 text-xs font-semibold text-primary backdrop-blur">
