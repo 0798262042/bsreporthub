@@ -20,7 +20,7 @@ export function BrandHeader() {
   }
 
   return (
-    <header className={`border-b border-border/60 ${settings.theme.navigation === "solid" ? "bg-card" : "bg-card/80 backdrop-blur-md"} sticky top-0 z-40`}>
+    <header className="navigation-theme border-b border-border/60 bg-navigation text-navigation-foreground sticky top-0 z-40">
       <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-3 group">
           <BrandMark location="nav" />
@@ -49,18 +49,18 @@ export function BrandHeader() {
                 </Link>
               </Button>
             )}
-            <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5">
+            <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-navigation px-3 py-1.5">
               {isAdmin ? (
-                <ShieldCheck className="h-4 w-4 text-primary" />
+                <ShieldCheck className="h-4 w-4 text-navigation-foreground" />
               ) : (
                 <UserIcon className="h-4 w-4 text-muted-foreground" />
               )}
               <span className="text-xs font-medium text-foreground">{user.email}</span>
-              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground">
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-foreground">
                 {isAdmin ? "Admin" : "User"}
               </span>
             </div>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
+            <Button variant="outline" size="sm" className="bg-navigation text-navigation-foreground hover:text-accent-foreground" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Sign out</span>
             </Button>

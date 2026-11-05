@@ -8,7 +8,7 @@ import { applyPrintSetup } from "./xlsx-print";
 
 type Cell = XLSX.CellObject;
 
-const BLUE = "1E3A8A";
+const BLUE = "061C2C";
 const LIGHT = "EFF6FF";
 const WHITE = "FFFFFF";
 

@@ -3,7 +3,7 @@ import { downloadBlob } from "../download";
 import { formatTime, formatDate } from "./normalize";
 import type { StudentRecord, StudentSummary } from "./student-search";
 
-const BLUE = "1E3A8A";
+const BLUE = "061C2C";
 const LIGHT = "EFF6FF";
 const WHITE = "FFFFFF";
 
@@ -136,7 +136,7 @@ export function exportStudentExcel(
       {
         t: "s",
         v: label,
-        s: { font: { bold: true, color: { rgb: "1E3A8A" } }, border },
+        s: { font: { bold: true, color: { rgb: "061C2C" } }, border },
       },
       textCell(value, false, true),
     ];
@@ -207,7 +207,7 @@ export async function exportStudentPdf(
     HEADERS.map((h) => ({
       text: h,
       style: "th",
-      fillColor: "#1E3A8A",
+      fillColor: "#061C2C",
       color: "white",
       alignment: "center",
       border: [false, false, false, false],
@@ -242,7 +242,7 @@ export async function exportStudentPdf(
   const statBlock = (label: string, value: string) => ({
     stack: [
       { text: label, fontSize: 8, color: "#64748B" },
-      { text: value, fontSize: 14, bold: true, color: "#1E3A8A" },
+      { text: value, fontSize: 14, bold: true, color: "#061C2C" },
     ],
     margin: [0, 0, 12, 0],
   });
@@ -262,7 +262,7 @@ export async function exportStudentPdf(
                   text: "NMU Business School — Attendance Report",
                   style: "brandTitle",
                   alignment: "center",
-                  fillColor: "#1E3A8A",
+                  fillColor: "#061C2C",
                   color: "white",
                   margin: [0, 14, 0, 6],
                   border: [false, false, false, false],
@@ -273,7 +273,7 @@ export async function exportStudentPdf(
                   text: `Student: ${summary.name}`,
                   style: "brandSub",
                   alignment: "center",
-                  fillColor: "#1E3A8A",
+                  fillColor: "#061C2C",
                   color: "white",
                   margin: [0, 0, 0, 14],
                   border: [false, false, false, false],
@@ -342,7 +342,7 @@ export async function exportStudentPdf(
       brandTitle: { fontSize: 15, bold: true },
       brandSub: { fontSize: 11, bold: true },
       meta: { fontSize: 9, color: "#475569" },
-      h2: { fontSize: 11, bold: true, color: "#1E3A8A" },
+      h2: { fontSize: 11, bold: true, color: "#061C2C" },
       th: { bold: true, fontSize: 9 },
       td: { fontSize: 9 },
     },

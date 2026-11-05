@@ -83,7 +83,7 @@ export async function exportReportPdf(
   const thTop = (text: string, extra: Record<string, unknown> = {}) => ({
     text,
     style: "thTop",
-    fillColor: "#1E3A8A",
+    fillColor: "#061C2C",
     color: "white",
     alignment: "center",
     margin: [0, 4, 0, 4],
@@ -93,7 +93,7 @@ export async function exportReportPdf(
   const thSub = (text: string) => ({
     text,
     style: "thSub",
-    fillColor: "#2547A3",
+    fillColor: "#061C2C",
     color: "white",
     alignment: "center",
     margin: [0, 3, 0, 3],
@@ -254,7 +254,7 @@ export async function exportReportPdf(
                   text: "NMU Business School — Attendance Report",
                   style: "brandTitle",
                   alignment: "center",
-                  fillColor: "#1E3A8A",
+                  fillColor: "#061C2C",
                   color: "white",
                   margin: [0, 14, 0, 6],
                   border: [false, false, false, false],
@@ -265,7 +265,7 @@ export async function exportReportPdf(
                   text: subtitle,
                   style: "brandSub",
                   alignment: "center",
-                  fillColor: "#1E3A8A",
+                  fillColor: "#061C2C",
                   color: "white",
                   margin: [0, 0, 0, 14],
                   border: [false, false, false, false],
@@ -291,7 +291,7 @@ export async function exportReportPdf(
       brandSub: { fontSize: 11, bold: true },
       title: { fontSize: 16, bold: true, color: "#0F172A", margin: [0, 0, 0, 4] },
       meta: { fontSize: 9, color: "#475569" },
-      h2: { fontSize: 11, bold: true, color: "#1E3A8A" },
+      h2: { fontSize: 11, bold: true, color: "#061C2C" },
       thTop: { bold: true, fontSize: Math.max(fontSize, 7) },
       thSub: { bold: true, fontSize: Math.max(fontSize - 1, 6) },
       td: { fontSize },
@@ -327,7 +327,7 @@ function statBlock(label: string, value: string | number) {
   return {
     stack: [
       { text: label, fontSize: 8, color: "#64748B" },
-      { text: String(value), fontSize: 14, bold: true, color: "#1E3A8A" },
+      { text: String(value), fontSize: 14, bold: true, color: "#061C2C" },
     ],
     margin: [0, 0, 12, 0],
   };

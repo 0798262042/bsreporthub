@@ -97,25 +97,25 @@ export function Landing({ previewMedia = {} }: { previewMedia?: Record<string,st
       />
 
       {/* Nav */}
-      <header className="relative z-20">
+      <header className="relative z-20 bg-navigation text-navigation-foreground">
         <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
             <BrandMark location="landing" />
             <span className="text-xl font-bold text-landing-copy">{settings.brand.name}</span>
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
-            <a href="#features" className="text-sm font-medium text-foreground/70 hover:text-primary transition-colors">
+            <a href="#features" className="text-sm font-medium text-navigation-foreground/80 hover:text-navigation-foreground transition-colors">
               Features
             </a>
-            <a href="#how" className="text-sm font-medium text-foreground/70 hover:text-primary transition-colors">
+            <a href="#how" className="text-sm font-medium text-navigation-foreground/80 hover:text-navigation-foreground transition-colors">
               How it works
             </a>
-            <a href="#about" className="text-sm font-medium text-foreground/70 hover:text-primary transition-colors">
+            <a href="#about" className="text-sm font-medium text-navigation-foreground/80 hover:text-navigation-foreground transition-colors">
               About
             </a>
           </nav>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm" className="rounded-full px-5">
+            <Button asChild variant="outline" size="sm" className="rounded-full px-5 text-foreground">
               <Link to="/auth">Login</Link>
             </Button>
             <Button

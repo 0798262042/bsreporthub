@@ -650,7 +650,7 @@ export function SystemManagement() {
                       className="h-10 w-14 p-1"
                       type="color"
                       aria-label={key + " colour"}
-                      value={s.theme[key] || "#1e3a8a"}
+                      value={s.theme[key] || "#061c2c"}
                       onChange={(e) => update("theme", { [key]: e.target.value })}
                     />
                     <Label className="capitalize">{key} colour</Label>
