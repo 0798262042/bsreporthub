@@ -141,12 +141,10 @@ export function Landing({ previewMedia = {} }: { previewMedia?: Record<string,st
             <h1 className="mt-5 text-5xl font-black tracking-tight text-foreground sm:text-6xl lg:text-7xl">
               {page.heading}
             </h1>
-            <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              <span className="bg-[image:var(--gradient-brand)] bg-clip-text text-transparent">
-                {page.subtitle}
-              </span>
+            <p className="mt-3 text-2xl font-semibold tracking-tight text-landing-copy sm:text-3xl">
+              {page.subtitle}
             </p>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-landing-copy sm:text-lg">
               {page.description}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
