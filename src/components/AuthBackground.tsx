@@ -1,13 +1,18 @@
 import type { ReactNode } from "react";
 import bgAsset from "@/assets/nelson-mandela.png.asset.json";
+import { useSiteSettings } from "@/components/system/SettingsProvider";
+import { mediaUrl } from "@/lib/system/settings";
 
 export function AuthBackground({ children }: { children: ReactNode }) {
+  // Use the published landing-page picture so both pages share one background.
+  const landingImage = useSiteSettings().landing.image;
+  const bg = landingImage ? mediaUrl(landingImage) : bgAsset.url;
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <div
         aria-hidden
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${bgAsset.url})` }}
+        style={{ backgroundImage: `url(${bg})` }}
       />
       <div aria-hidden className="absolute inset-0 bg-black/40" />
       <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-primary/30 via-black/20 to-black/50" />
