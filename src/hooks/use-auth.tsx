@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Role = "admin" | "user";
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "suspended";
@@ -19,6 +20,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const qc = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus | null>(null);
@@ -29,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (!s) {
+        // Sensitive attendance/admin caches must not survive a sign-out.
+        qc.removeQueries({ predicate: (query) => query.queryKey[0] !== "published-settings" });
         setRole(null);
         setApprovalStatus(null);
       }
@@ -42,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [qc]);
 
   useEffect(() => {
     if (!session?.user) return;

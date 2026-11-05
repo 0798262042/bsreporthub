@@ -1,16 +1,20 @@
-import { useEffect, useState, useCallback } from "react";
-import { listReports, getReport } from "@/lib/attendance/storage";
-import type { Report } from "@/lib/attendance/types";
+import { useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { listReports, getReport, listReportCategories } from "@/lib/attendance/storage";
+import { useAuth } from "./use-auth";
+const EMPTY_REPORTS: Awaited<ReturnType<typeof listReports>> = [];
 
-export function useReports() {
-  const [reports, setReports] = useState<Report[]>([]);
-
-  const refresh = useCallback(() => {
-    listReports().then(setReports).catch(() => setReports([]));
-  }, []);
-
+export function useReports(category?: string) {
+  const { user, approvalStatus } = useAuth();
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: ["attendance-reports", user?.id, category ?? "all"],
+    queryFn: () => listReports(category),
+    enabled: !!user && approvalStatus === "approved",
+    staleTime: 60000,
+  });
+  const refresh = useCallback(() => { void qc.invalidateQueries({ queryKey: ["attendance-reports"] }); }, [qc]);
   useEffect(() => {
-    refresh();
     const onChange = () => refresh();
     window.addEventListener("nmu-reports-changed", onChange);
     window.addEventListener("storage", onChange);
@@ -20,30 +24,28 @@ export function useReports() {
     };
   }, [refresh]);
 
-  return { reports, refresh };
+  return { reports: query.data ?? EMPTY_REPORTS, refresh, loading: query.isPending, error: query.error };
+}
+
+export function useReportCategories() {
+  const { user, approvalStatus } = useAuth();
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: ["attendance-categories", user?.id], queryFn: listReportCategories, enabled: !!user && approvalStatus === "approved", staleTime: 60000 });
+  useEffect(() => {
+    const refresh = () => { void qc.invalidateQueries({ queryKey: ["attendance-categories"] }); };
+    window.addEventListener("nmu-reports-changed", refresh);
+    return () => window.removeEventListener("nmu-reports-changed", refresh);
+  }, [qc]);
+  return { reports: query.data ?? [] };
 }
 
 export function useReport(id: string | undefined) {
-  const [report, setReport] = useState<Report | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  const refresh = useCallback(() => {
-    if (!id) {
-      setReport(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    getReport(id)
-      .then((r) => {
-        setReport(r);
-      })
-      .catch(() => setReport(null))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { user, approvalStatus } = useAuth();
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: ["attendance-report", user?.id, id], queryFn: () => id ? getReport(id) : null, enabled: !!id && !!user && approvalStatus === "approved", staleTime: 60000 });
+  const refresh = useCallback(() => { void qc.invalidateQueries({ queryKey: ["attendance-report", user?.id, id] }); }, [qc, user?.id, id]);
 
   useEffect(() => {
-    refresh();
     const onChange = () => refresh();
     window.addEventListener("nmu-reports-changed", onChange);
     window.addEventListener("storage", onChange);
@@ -53,5 +55,5 @@ export function useReport(id: string | undefined) {
     };
   }, [refresh]);
 
-  return { report, refresh, loading };
+  return { report: query.data ?? null, refresh, loading: !!id && query.isPending, error: query.error };
 }

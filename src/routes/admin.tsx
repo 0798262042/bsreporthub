@@ -113,7 +113,8 @@ import {
 } from "@/lib/admin.functions";
 import { ACTIVITY_LABELS, logActivity } from "@/lib/activity";
 import { listReports } from "@/lib/attendance/storage";
-import { exportAllReportsExcel } from "@/lib/attendance/export-all-excel";
+import { exportAllInWorker } from "@/lib/attendance/export-worker";
+import { downloadBlob } from "@/lib/download";
 import { SystemManagement } from "@/components/system/SystemManagement";
 import { Settings2 } from "lucide-react";
 import { UserApprovals, usePendingCount } from "@/components/admin/UserApprovals";
@@ -137,7 +138,8 @@ function DownloadAllReportsButton() {
         setBusy(true);
         try {
           const reports = await listReports();
-          const { sheets } = exportAllReportsExcel(reports);
+          const { blob, filename, sheets } = await exportAllInWorker(reports);
+          downloadBlob(blob, filename);
           void logActivity({
             action: "report.exported_excel",
             details: { scope: "all-reports", sheets },
@@ -277,6 +279,7 @@ function OverviewTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: () => statsFn(),
+    staleTime: 60000,
   });
 
   if (isLoading || !data) {

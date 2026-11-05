@@ -8,8 +8,16 @@ import {
   parseSettings,
   contrastText,
   validateImageBytes,
+  faviconType,
 } from "./settings";
 describe("System Management safety", () => {
+  test("accepts PNG and ICO favicon signatures and rejects empty files", () => {
+    assert.equal(validateImageBytes(new Uint8Array([0, 0, 1, 0]), "ico", 100), true);
+    assert.equal(validateImageBytes(new Uint8Array([0, 0, 2, 0]), "ico", 100), false);
+    assert.equal(validateImageBytes(new Uint8Array([137,80,78,71,13,10,26,10]), "png", 0), false);
+    assert.equal(faviconType("abc.ico"), "image/x-icon");
+    assert.equal(faviconType("abc.png"), "image/png");
+  });
   test("validates image signatures and enforces the five MB limit", () => {
     const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
     assert.equal(validateImageBytes(png, "png", 5 * 1024 * 1024), true);

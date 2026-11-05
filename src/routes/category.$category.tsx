@@ -44,7 +44,7 @@ import {
   deleteReport,
   findReportContainingSessions,
 } from "@/lib/attendance/storage";
-import { parseAttendanceFile } from "@/lib/attendance/parse";
+import { parseAttendanceFile } from "@/lib/attendance/parse-background";
 import { toStoredSession, relabelSessions } from "@/lib/attendance/combine";
 import { stripDates } from "@/lib/attendance/normalize";
 import type { Category } from "@/lib/attendance/types";
@@ -85,7 +85,7 @@ function sessionsMatchCategory(
 function CategoryPage() {
   const { category: rawCategory } = Route.useParams();
   const navigate = useNavigate();
-  const { reports } = useReports();
+  const { reports } = useReports(rawCategory);
   const { isAdmin } = useAuth();
   const { programs } = usePrograms();
 

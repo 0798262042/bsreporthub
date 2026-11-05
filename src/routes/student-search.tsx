@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -17,22 +17,14 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
-import { listReports } from "@/lib/attendance/storage";
-import type { Report } from "@/lib/attendance/types";
+import { useReports } from "@/hooks/use-reports";
 import { formatDate, formatTime } from "@/lib/attendance/normalize";
 import {
-  collectStudentNames,
   filterStudentNames,
-  getStudentRecords,
-  getTopStudents,
   summarizeStudent,
   type StudentRecord,
   type StudentSummary,
 } from "@/lib/attendance/student-search";
-import {
-  exportStudentExcel,
-  exportStudentPdf,
-} from "@/lib/attendance/export-student";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/student-search")({
@@ -59,10 +51,13 @@ export const Route = createFileRoute("/student-search")({
 
 function StudentSearchPage() {
   const { session } = useAuth();
-  const [reports, setReports] = useState<Report[] | null>(null);
+  const { reports, loading, error, refresh } = useReports();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [topStudents, setTopStudents] = useState<StudentSummary[] | null>(null);
+  const [allNames, setAllNames] = useState<string[]>([]);
+  const [recordResult, setRecordResult] = useState<{ name: string; records: StudentRecord[] } | null>(null);
+  const searchWorker = useRef<Worker | null>(null);
 
   // Filters
   const [startDate, setStartDate] = useState("");
@@ -73,41 +68,25 @@ function StudentSearchPage() {
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    if (!session) return;
-    let active = true;
-    let request = 0;
-    const refresh = () => {
-      const current = ++request;
-      listReports().then((data) => {
-        if (active && current === request) setReports(data);
-      }).catch(() => {
-        if (active && current === request) setReports([]);
-      });
-    };
-    refresh();
-    window.addEventListener("nmu-reports-changed", refresh);
-    window.addEventListener("focus", refresh);
-    return () => {
-      active = false;
-      window.removeEventListener("nmu-reports-changed", refresh);
-      window.removeEventListener("focus", refresh);
-    };
-  }, [session]);
-
-  useEffect(() => {
-    if (!reports) return;
-    let active = true;
+    if (loading) return;
+    const worker = new Worker(new URL("../lib/attendance/search.worker.ts", import.meta.url), { type: "module" });
+    searchWorker.current = worker;
+    setAllNames([]);
+    setRecordResult(null);
     setTopStudents(null);
-    getTopStudents(reports).then((students) => {
-      if (active) setTopStudents(students);
-    });
-    return () => { active = false; };
-  }, [reports]);
-
-  const allNames = useMemo(
-    () => (reports ? collectStudentNames(reports) : []),
-    [reports],
-  );
+    worker.onmessage = (event: MessageEvent<{ type: string; names: string[]; students: StudentSummary[]; name: string; records: StudentRecord[] }>) => {
+      if (event.data.type === "names") setAllNames(event.data.names);
+      else if (event.data.type === "ranking") setTopStudents(event.data.students);
+      else if (event.data.type === "records") setRecordResult({ name: event.data.name, records: event.data.records });
+      else toast.error("Could not calculate attendance. Please reload and try again.");
+    };
+    worker.onerror = () => toast.error("Could not prepare student search. Please reload and try again.");
+    worker.postMessage({ type: "init", reports });
+    return () => { worker.terminate(); searchWorker.current = null; };
+  }, [reports, loading]);
+  useEffect(() => {
+    if (selected) searchWorker.current?.postMessage({ type: "student", name: selected });
+  }, [selected, reports, loading]);
 
   const deferredQuery = useDeferredValue(query);
   const matches = useMemo(
@@ -116,8 +95,8 @@ function StudentSearchPage() {
   );
 
   const allRecords = useMemo(
-    () => (reports && selected ? getStudentRecords(reports, selected) : []),
-    [reports, selected],
+    () => (recordResult?.name === selected ? recordResult.records : []),
+    [recordResult, selected],
   );
 
   const modules = useMemo(
@@ -172,6 +151,7 @@ function StudentSearchPage() {
     if (!summary || filtered.length === 0) return;
     setExporting(true);
     try {
+      const { exportStudentExcel, exportStudentPdf } = await import("@/lib/attendance/export-student");
       if (kind === "excel") exportStudentExcel(summary, filtered);
       else await exportStudentPdf(summary, filtered);
       toast.success(
@@ -185,7 +165,8 @@ function StudentSearchPage() {
   }
 
   if (!session) return <Landing />;
-  if (reports === null) return <LoadingScreen />;
+  if (loading) return <LoadingScreen />;
+  if (error) return <div role="alert" className="p-8"><p>Could not load attendance. Please try again.</p><Button onClick={refresh}>Try again</Button></div>;
 
   return (
     <div className="min-h-screen bg-[image:var(--gradient-soft)]">

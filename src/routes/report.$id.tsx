@@ -46,7 +46,7 @@ import {
   findDuplicateSessions,
   setHiddenNames,
 } from "@/lib/attendance/storage";
-import { parseAttendanceFile } from "@/lib/attendance/parse";
+import { parseAttendanceFile } from "@/lib/attendance/parse-background";
 import {
   combineReport,
   computeStats,
@@ -54,8 +54,6 @@ import {
   toStoredSession,
 } from "@/lib/attendance/combine";
 import { formatDate, formatTime } from "@/lib/attendance/normalize";
-import { exportReportExcel } from "@/lib/attendance/export-excel";
-import { exportReportPdf } from "@/lib/attendance/export-pdf";
 import { cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 import { rejectWithFix } from "@/lib/reject-toast";
@@ -417,9 +415,10 @@ function ReportPage() {
 
   const dateRangeLabel = reportDateRange(report.sessions);
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!combined || combined.students.length === 0) return;
     try {
+      const { exportReportExcel } = await import("@/lib/attendance/export-excel");
       const topic = report.sessions[0]?.topic ?? report.name;
       const filenameBase = prettyModuleAndLecturer(topic);
       exportReportExcel(report.name, combined.sessions, combined.students, filenameBase, {
@@ -443,6 +442,7 @@ function ReportPage() {
     if (!combined || combined.students.length === 0 || exportingPdf) return;
     setExportingPdf(true);
     try {
+      const { exportReportPdf } = await import("@/lib/attendance/export-pdf");
       const topic = report.sessions[0]?.topic ?? report.name;
       const filenameBase = prettyModuleAndLecturer(topic);
       await exportReportPdf(report.name, combined.sessions, combined.students, filenameBase);

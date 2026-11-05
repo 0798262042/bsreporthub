@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -46,6 +46,7 @@ import {
   settingsSchema,
   mediaPaths,
   contrastText,
+  validateImageBytes,
   type SiteSettings,
 } from "@/lib/system/settings";
 import { getManagedSettings, saveManagedSettings } from "@/lib/system/settings.functions";
@@ -121,6 +122,8 @@ export function SystemManagement() {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const operation = useRef(false);
+  const signedMedia = useRef<Record<string, { url: string; expires: number }>>({});
   useEffect(() => {
     if (query.data) {
       setS(query.data.draft);
@@ -132,13 +135,17 @@ export function SystemManagement() {
     let cancelled = false;
     (async () => {
       const pairs = await Promise.all(
-        mediaPaths(s).map(async (path) => {
-          const { data } = await supabase.storage.from("site-media").createSignedUrl(path, 3600);
-          return [path, data?.signedUrl ?? ""] as const;
+        [...new Set(mediaPaths(s))].map(async (path) => {
+          const cached = signedMedia.current[path];
+          if (cached && cached.expires > Date.now()) return [path, cached.url] as const;
+          const { data, error } = await supabase.storage.from("site-media").createSignedUrl(path, 3600);
+          if (error || !data) throw new Error("Could not load the stored image preview. Please try again.");
+          signedMedia.current[path] = { url: data.signedUrl, expires: Date.now() + 3500000 };
+          return [path, data.signedUrl] as const;
         }),
       );
       if (!cancelled) setUrls(Object.fromEntries(pairs));
-    })();
+    })().catch((error) => { if (!cancelled) toast.error(error.message); });
     return () => {
       cancelled = true;
     };
@@ -148,6 +155,7 @@ export function SystemManagement() {
   }
   const dirty = JSON.stringify(s) !== JSON.stringify(baseline);
   async function action(kind: "save" | "publish" | "restore", content = s) {
+    if (operation.current) return;
     const valid = settingsSchema.safeParse(content);
     if (!valid.success) {
       toast.error(valid.error.issues[0]?.message ?? "Check your settings.");
@@ -168,6 +176,7 @@ export function SystemManagement() {
       )
     )
       return;
+    operation.current = true;
     setBusy(true);
     try {
       const result = await save({ data: { action: kind, content, revision } });
@@ -175,7 +184,14 @@ export function SystemManagement() {
       setBaseline(content);
       setS(content);
       await qc.invalidateQueries({ queryKey: ["managed-settings"] });
-      if (kind !== "save") await qc.invalidateQueries({ queryKey: ["published-settings"] });
+      if (kind !== "save") {
+        qc.setQueryData(["published-settings"], result.content);
+        if (typeof BroadcastChannel !== "undefined") {
+          const channel = new BroadcastChannel("attendra-branding");
+          channel.postMessage("published");
+          channel.close();
+        }
+      }
       toast.success(
         kind === "save"
           ? "Draft saved. Visitors still see the published version."
@@ -186,10 +202,12 @@ export function SystemManagement() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save changes.");
     } finally {
+      operation.current = false;
       setBusy(false);
     }
   }
   async function upload(file: File, key: "logo" | "favicon" | "image") {
+    if (operation.current) return;
     const types: Record<string, string> = {
       "image/png": "png",
       "image/jpeg": "jpg",
@@ -197,38 +215,43 @@ export function SystemManagement() {
       "image/x-icon": "ico",
       "image/vnd.microsoft.icon": "ico",
     };
-    const ext = types[file.type];
-    if (!ext || file.size > 5 * 1024 * 1024) {
+    const ext = types[file.type] || (file.type === "" && /\.ico$/i.test(file.name) ? "ico" : "");
+    if (!ext || file.size === 0 || file.size > 5 * 1024 * 1024) {
       toast.error("Upload a PNG, JPEG, WebP or ICO image up to 5 MB.");
       return;
     }
     const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-    const valid =
-      ext === "png"
-        ? bytes[0] === 137 && bytes[1] === 80 && bytes[2] === 78 && bytes[3] === 71
-        : ext === "jpg"
-          ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
-          : ext === "webp"
-            ? String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
-              String.fromCharCode(...bytes.slice(8, 12)) === "WEBP"
-            : bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 1 && bytes[3] === 0;
+    const valid = validateImageBytes(bytes, ext, file.size);
     if (!valid) {
       toast.error("This file is not a supported image.");
       return;
     }
+    const contentType = file.type || "image/x-icon";
+    operation.current = true;
     setBusy(true);
     try {
       const path = crypto.randomUUID() + "." + ext;
       const { error } = await supabase.storage
         .from("site-media")
-        .upload(path, file, { contentType: file.type });
-      if (error) throw error;
-      if (key === "image") update("landing", { image: path });
-      else update("brand", { [key]: path });
-      toast.success("Image uploaded privately. Save or publish to apply it.");
-    } catch {
-      toast.error("Could not upload the image.");
+        .upload(path, file, { contentType, upsert: false });
+      if (error) throw new Error("Could not store the image. Check your connection and try again.");
+      const preview = await supabase.storage.from("site-media").createSignedUrl(path, 3600);
+      if (preview.error || !preview.data) throw new Error("Image stored, but its preview could not be loaded. Please try again.");
+      signedMedia.current[path] = { url: preview.data.signedUrl, expires: Date.now() + 3500000 };
+      const content = key === "image"
+        ? { ...s, landing: { ...s.landing, image: path } }
+        : { ...s, brand: { ...s.brand, [key]: path } };
+      setUrls((prev) => ({ ...prev, [path]: preview.data.signedUrl }));
+      setS(content);
+      const result = await save({ data: { action: "save", content, revision } });
+      setRevision(result.revision);
+      setBaseline(content);
+      await qc.invalidateQueries({ queryKey: ["managed-settings"] });
+      toast.success("Image stored and draft saved. Publish Changes to update the website.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not upload and save the image.");
     } finally {
+      operation.current = false;
       setBusy(false);
     }
   }
@@ -266,6 +289,7 @@ export function SystemManagement() {
           {path && (
             <Button
               variant="ghost"
+              disabled={busy}
               aria-label={"Remove " + label.toLowerCase()}
               onClick={() =>
                 key === "image" ? update("landing", { image: "" }) : update("brand", { [key]: "" })

@@ -32,7 +32,7 @@ export const getPublishedSettings = createServerFn({ method: "GET" }).handler(as
     .select("content")
     .eq("id", "website")
     .maybeSingle();
-  if (error) console.error("Published settings unavailable", error.code);
+  if (error) throw new Error("Could not load the latest website settings. Please try again.");
   return parseSettings(data?.content);
 });
 export const getManagedSettings = createServerFn({ method: "GET" })
@@ -104,5 +104,5 @@ export const saveManagedSettings = createServerFn({ method: "POST" })
           ? "Settings changed by another administrator. Reload before saving."
           : "Could not save website settings. Administrator access is required.",
       );
-    return { revision };
+    return { revision, content: data.content };
   });

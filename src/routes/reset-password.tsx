@@ -7,6 +7,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { AuthBackground, authCardClass } from "@/components/AuthBackground";
+import { BrandMark } from "@/components/system/BrandMark";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({ meta: [{title: "Reset Password — Attendra"},{name:"description",content:"Securely set a new password for your Attendra account."},{property:"og:title",content:"Reset Password — Attendra"},{property:"og:description",content:"Securely set a new password for your Attendra account."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}] }),
@@ -123,9 +124,7 @@ function ResetPasswordPage() {
     <AuthBackground>
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[image:var(--gradient-brand)] text-white shadow-[var(--shadow-card)]">
-            <GraduationCap className="h-5 w-5" />
-          </div>
+          <BrandMark location="auth" />
           <p className="text-sm font-semibold text-white">Attendance Report Generator</p>
         </div>
         <div className={authCardClass}>

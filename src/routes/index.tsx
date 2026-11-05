@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Sparkles, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandHeader } from "@/components/attendance/BrandHeader";
-import { useReports } from "@/hooks/use-reports";
+import { useReportCategories } from "@/hooks/use-reports";
 import { usePrograms } from "@/hooks/use-programs";
 import { useAuth } from "@/hooks/use-auth";
 import { Landing } from "@/components/Landing";
@@ -14,10 +14,13 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { session } = useAuth();
+  return session ? <ReportsHome /> : <Landing />;
+}
+
+function ReportsHome() {
   const navigate = useNavigate();
-  const { reports } = useReports();
+  const { reports } = useReportCategories();
   const { programs } = usePrograms();
-  if (!session) return <Landing />;
 
   const counts: Record<string, number> = {};
   for (const r of reports) counts[r.category] = (counts[r.category] ?? 0) + 1;

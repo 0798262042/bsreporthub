@@ -1,6 +1,7 @@
 import type { Category, Report, StoredSession } from "./types";
 import { sessionFingerprint } from "./combine";
 import { supabase } from "@/integrations/supabase/client";
+import { readAllPages } from "./paged-read";
 
 function emit() {
   if (typeof window !== "undefined") {
@@ -55,41 +56,52 @@ function storedToDb(reportId: string, s: StoredSession) {
 }
 
 async function relabelReport(reportId: string) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("sessions")
-    .select("id, session_date")
+    .select("id, label, session_date")
     .eq("report_id", reportId)
     .order("session_date", { ascending: true });
+  if (error) throw error;
   if (!data) return;
-  await Promise.all(
-    data.map((s, i) =>
-      supabase.from("sessions").update({ label: `Session ${i + 1}` }).eq("id", s.id),
-    ),
-  );
+  const changed = data.map((s, i) => ({ ...s, label: `Session ${i + 1}`, changed: s.label !== `Session ${i + 1}` })).filter((s) => s.changed);
+  // Skip unchanged labels and bound concurrent writes for large modules.
+  for (let offset = 0; offset < changed.length; offset += 8) {
+    await Promise.all(changed.slice(offset, offset + 8).map(async (s) => {
+      const result = await supabase.from("sessions").update({ label: s.label }).eq("id", s.id);
+      if (result.error) throw result.error;
+    }));
+  }
 }
 
 async function touchReport(id: string) {
   // The trigger auto-sets updated_at on any UPDATE. Bump it explicitly so the
   // list reorders after adding/removing sessions.
-  await supabase
+  const { error } = await supabase
     .from("reports")
     .update({ updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) throw error;
 }
 
-export async function listReports(): Promise<Report[]> {
-  const { data: reports } = await supabase
-    .from("reports")
-    .select("*")
-    .order("updated_at", { ascending: false });
-  if (!reports) return [];
+export async function listReportCategories(): Promise<{ category: string }[]> {
+  return readAllPages((from, to) => supabase.from("reports").select("category").order("id").range(from, to));
+}
+
+export async function listReports(category?: string): Promise<Report[]> {
+  const reports = await readAllPages((from, to) => {
+    let query = supabase.from("reports").select("id, name, category, hidden_names, created_at, updated_at").order("updated_at", { ascending: false }).order("id");
+    if (category) query = query.eq("category", category);
+    return query.range(from, to);
+  });
   const ids = reports.map((r) => r.id);
-  const sessionsRes =
-    ids.length > 0
-      ? await supabase.from("sessions").select("*").in("report_id", ids)
-      : { data: [] as DbSession[] };
+  const sessions: DbSession[] = [];
+  // Bound IN filters and payloads; never truncate a student's attendance history.
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const batch = await readAllPages((from, to) => supabase.from("sessions").select("*").in("report_id", ids.slice(offset, offset + 100)).order("id").range(from, to));
+    sessions.push(...batch);
+  }
   const byReport = new Map<string, StoredSession[]>();
-  for (const s of (sessionsRes.data ?? []) as DbSession[]) {
+  for (const s of sessions) {
     const list = byReport.get(s.report_id) ?? [];
     list.push(dbToStored(s));
     byReport.set(s.report_id, list);
@@ -106,16 +118,14 @@ export async function listReports(): Promise<Report[]> {
 }
 
 export async function getReport(id: string): Promise<Report | null> {
-  const { data: r } = await supabase
+  const { data: r, error } = await supabase
     .from("reports")
     .select("*")
     .eq("id", id)
     .maybeSingle();
+  if (error) throw error;
   if (!r) return null;
-  const { data: sessions } = await supabase
-    .from("sessions")
-    .select("*")
-    .eq("report_id", id);
+  const sessions = await readAllPages((from, to) => supabase.from("sessions").select("*").eq("report_id", id).order("id").range(from, to));
   return {
     id: r.id,
     name: r.name,
@@ -173,7 +183,8 @@ export async function renameReport(id: string, name: string) {
 export async function addSessions(id: string, newSessions: StoredSession[]) {
   if (newSessions.length === 0) return;
   const rows = newSessions.map((s) => storedToDb(id, s));
-  await supabase.from("sessions").insert(rows);
+  const { error } = await supabase.from("sessions").insert(rows);
+  if (error) throw new Error("Could not save attendance. Please try again.");
   await relabelReport(id);
   await touchReport(id);
   emit();

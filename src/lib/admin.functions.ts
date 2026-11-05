@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { readAllPages } from "./attendance/paged-read";
 
 async function assertAdmin(ctx: {
   supabase: import("@supabase/supabase-js").SupabaseClient;
@@ -313,33 +314,17 @@ export const getDashboardStats = createServerFn({ method: "GET" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [usersRes, rolesRes, reportsRes, sessionsRes, logsRes] = await Promise.all([
+    const [usersRes, roles, reports, sessions, pdfRes, excelRes] = await Promise.all([
       supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }),
-      supabaseAdmin.from("user_roles").select("role"),
-      supabaseAdmin.from("reports").select("id, name, category, created_at"),
-      supabaseAdmin
-        .from("sessions")
-        .select("id, report_id, session_date, created_at, source_filename, attendees"),
-      supabaseAdmin.from("activity_logs").select("action"),
+      readAllPages((from, to) => supabaseAdmin.from("user_roles").select("role").order("id").range(from, to)),
+      readAllPages((from, to) => supabaseAdmin.from("reports").select("id, name, category, created_at").order("id").range(from, to)),
+      readAllPages((from, to) => supabaseAdmin.from("sessions").select("id, report_id, session_date, created_at, source_filename, attendees").order("id").range(from, to)),
+      supabaseAdmin.from("activity_logs").select("id", { count: "exact", head: true }).eq("action", "report.exported_pdf"),
+      supabaseAdmin.from("activity_logs").select("id", { count: "exact", head: true }).eq("action", "report.exported_excel"),
     ]);
-
-    const roleRows = (rolesRes.data ?? []) as { role: string }[];
+    if (usersRes.error || pdfRes.error || excelRes.error) throw new Error("Could not load dashboard statistics.");
+    const roleRows = roles;
     const totalAdmins = roleRows.filter((r) => r.role === "admin").length;
-
-    const reports = (reportsRes.data ?? []) as {
-      id: string;
-      name: string;
-      category: string;
-      created_at: string;
-    }[];
-    const sessions = (sessionsRes.data ?? []) as {
-      id: string;
-      report_id: string;
-      session_date: string;
-      created_at: string;
-      source_filename: string;
-      attendees: Array<{ name: string }> | null;
-    }[];
 
     // Unique files across sessions.
     const files = new Set<string>();
@@ -357,7 +342,7 @@ export const getDashboardStats = createServerFn({ method: "GET" })
       if (!set) reportStudents.set(s.report_id, (set = new Set()));
       let attMap = reportAttendedCount.get(s.report_id);
       if (!attMap) reportAttendedCount.set(s.report_id, (attMap = new Map()));
-      for (const a of s.attendees ?? []) {
+      for (const a of (s.attendees ?? []) as Array<{ name: string }>) {
         const n = (a?.name || "").trim();
         if (!n) continue;
         allStudents.add(n.toLowerCase());
@@ -425,7 +410,7 @@ export const getDashboardStats = createServerFn({ method: "GET" })
         const total = list.length || 1;
         const attMap = new Map<string, number>();
         for (const s of list) {
-          for (const a of s.attendees ?? []) {
+          for (const a of (s.attendees ?? []) as Array<{ name: string }>) {
             const n = (a?.name || "").trim().toLowerCase();
             if (!n) continue;
             attMap.set(n, (attMap.get(n) ?? 0) + 1);
@@ -435,7 +420,8 @@ export const getDashboardStats = createServerFn({ method: "GET" })
         let pctSum = 0;
         for (const c of attMap.values()) pctSum += (c / total) * 100;
         const avg = pctSum / attMap.size;
-        const bucket = monthlyAttendance.get(ym)!;
+        const bucket = monthlyAttendance.get(ym);
+        if (!bucket) continue;
         bucket.sum += avg;
         bucket.n += 1;
       }
@@ -462,9 +448,8 @@ export const getDashboardStats = createServerFn({ method: "GET" })
       }
     }
 
-    const logsRows = (logsRes.data ?? []) as { action: string }[];
-    const pdfDownloads = logsRows.filter((l) => l.action === "report.exported_pdf").length;
-    const excelDownloads = logsRows.filter((l) => l.action === "report.exported_excel").length;
+    const pdfDownloads = pdfRes.count ?? 0;
+    const excelDownloads = excelRes.count ?? 0;
 
     return {
       totalUsers: usersRes.count ?? 0,
@@ -493,7 +478,7 @@ export const getDashboardStats = createServerFn({ method: "GET" })
         Reports: reportsByMonth.get(m) ?? 0,
       })),
       attendanceTrends: months.map((m) => {
-        const b = monthlyAttendance.get(m)!;
+        const b = monthlyAttendance.get(m) ?? { sum: 0, n: 0 };
         return {
           month: monthLabel(m),
           Attendance: b.n === 0 ? 0 : Math.round((b.sum / b.n) * 10) / 10,

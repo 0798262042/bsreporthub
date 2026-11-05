@@ -1,4 +1,7 @@
 # Tasks
+- [x] Fix stored logo/favicon uploads, previews, publishing and persistent public delivery.
+- [x] Reduce unnecessary loading and repeated attendance/settings work without changing accuracy or permissions.
+- [x] Verify branding, invalid uploads, authenticated navigation, large-data processing and search, and real Excel/PDF exports.
 - [x] Add duplicate-safe, name-matched Top 5 attendance calculation and rule tests.
 - [x] Show rankings initially and after reset, hide during search, and refresh report updates.
 - [x] Verify authenticated desktop/mobile flow and save changes.

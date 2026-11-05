@@ -210,6 +210,9 @@ export function mediaPaths(s: SiteSettings) {
 export function mediaUrl(path: string) {
   return path ? `/api/public/site-media?path=${encodeURIComponent(path)}` : "";
 }
+export function faviconType(path: string) {
+  return path.endsWith(".ico") ? "image/x-icon" : path.endsWith(".jpg") ? "image/jpeg" : path.endsWith(".webp") ? "image/webp" : "image/png";
+}
 export function validateImageBytes(bytes: Uint8Array, extension: string, size: number) {
   if (size === 0 || size > 5 * 1024 * 1024) return false;
   if (extension === "png")

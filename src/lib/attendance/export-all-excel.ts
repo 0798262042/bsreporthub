@@ -202,7 +202,7 @@ function buildSheet(report: Report) {
  * One workbook, one worksheet per report/module, using the existing
  * attendance report layout on every tab.
  */
-export function exportAllReportsExcel(reports: Report[]) {
+export function buildAllReportsExcel(reports: Report[]) {
   const withData = reports.filter((r) => r.sessions.length > 0);
   if (withData.length === 0) {
     throw new Error("No reports are available to export.");
@@ -221,11 +221,17 @@ export function exportAllReportsExcel(reports: Report[]) {
   }
 
   const out = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
-  downloadBlob(
-    new Blob([out], {
+  return {
+    blob: new Blob([out], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }),
-    `All_Attendance_Reports_${new Date().getFullYear()}.xlsx`,
-  );
-  return { sheets: sorted.length };
+    filename: `All_Attendance_Reports_${new Date().getFullYear()}.xlsx`,
+    sheets: sorted.length,
+  };
+}
+
+export function exportAllReportsExcel(reports: Report[]) {
+  const result = buildAllReportsExcel(reports);
+  downloadBlob(result.blob, result.filename);
+  return { sheets: result.sheets };
 }
