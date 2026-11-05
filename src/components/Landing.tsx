@@ -101,7 +101,7 @@ export function Landing({ previewMedia = {} }: { previewMedia?: Record<string,st
         <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
             <BrandMark location="landing" />
-            <span className="text-xl font-bold text-foreground">{settings.brand.name}</span>
+            <span className="text-xl font-bold text-landing-copy">{settings.brand.name}</span>
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
             <a href="#features" className="text-sm font-medium text-foreground/70 hover:text-primary transition-colors">
@@ -138,7 +138,7 @@ export function Landing({ previewMedia = {} }: { previewMedia?: Record<string,st
               <Sparkles className="h-3.5 w-3.5" />
               {page.tagline}
             </div>
-            <h1 className="mt-5 text-5xl font-black tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+            <h1 className="mt-5 text-5xl font-black tracking-tight text-landing-copy sm:text-6xl lg:text-7xl">
               {page.heading}
             </h1>
             <p className="mt-3 text-2xl font-semibold tracking-tight text-landing-copy sm:text-3xl">
@@ -166,7 +166,7 @@ export function Landing({ previewMedia = {} }: { previewMedia?: Record<string,st
                 <Link to="/auth">Login</Link>
               </Button>
             </div>
-            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-landing-copy">
               {["Secure & private", "No installs", "Instant exports"].map((t) => (
                 <li key={t} className="inline-flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-primary" /> {t}
